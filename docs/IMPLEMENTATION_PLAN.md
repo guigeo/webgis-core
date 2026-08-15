@@ -1,7 +1,7 @@
 # Plano de Implementação — Geo Core V1
 
-**Status geral:** Etapa 0 em revisão  
-**Próximo gate:** aprovação da baseline documental  
+**Status geral:** Fase 1 em revisão
+**Próximo gate:** aprovação do bootstrap executável
 **Última atualização:** 2026-08-15
 
 ## 1. Forma de trabalho
@@ -24,8 +24,8 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 
 | Fase | Estado | Gate |
 |---|---|---|
-| 0 — Especificação e arquitetura | Em revisão | baseline documental aprovada |
-| 1 — Bootstrap executável | Não iniciada | ambiente integrado sobe por Docker Compose |
+| 0 — Especificação e arquitetura | Concluída | baseline documental aprovada |
+| 1 — Bootstrap executável | Em revisão | ambiente integrado sobe por Docker Compose |
 | 2 — Application Shell | Não iniciada | branding e shell controlados por configuração |
 | 3 — Map Core | Não iniciada | mapa funcional com acesso organizado à instância |
 | 4 — Primeira camada ponta a ponta | Não iniciada | PostGIS → API → mapa → seleção → popup |
@@ -45,7 +45,7 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 - [x] registrar composição de módulos em build time;
 - [x] registrar GeoJSON limitado como entrega espacial inicial;
 - [x] definir fases e gates;
-- [ ] obter aprovação da baseline documental.
+- [x] obter aprovação da baseline documental.
 
 ### Fora de escopo
 
@@ -69,16 +69,16 @@ A baseline deverá responder sem ambiguidade:
 
 ### Escopo previsto
 
-- [ ] inicializar repositório Git e arquivos básicos;
-- [ ] criar frontend React + TypeScript + Vite;
-- [ ] criar backend FastAPI;
-- [ ] configurar PostgreSQL + PostGIS;
-- [ ] configurar Nginx como entrada única;
-- [ ] criar Dockerfiles e Docker Compose de desenvolvimento;
-- [ ] criar `.env.example` sem segredos;
-- [ ] adicionar health da API e verificação do banco;
-- [ ] configurar lint, type checking e testes smoke;
-- [ ] criar README mínimo de execução.
+- [x] inicializar repositório Git e arquivos básicos;
+- [x] criar frontend React + TypeScript + Vite;
+- [x] criar backend FastAPI;
+- [x] configurar PostgreSQL + PostGIS;
+- [x] configurar Nginx como entrada única;
+- [x] criar Dockerfiles e Docker Compose de desenvolvimento;
+- [x] criar `.env.example` sem segredos;
+- [x] adicionar health da API e verificação do banco;
+- [x] configurar lint, type checking e testes smoke;
+- [x] criar README mínimo de execução.
 
 ### Fora de escopo
 
@@ -94,7 +94,7 @@ Em um clone limpo:
 
 ```bash
 cp .env.example .env
-docker compose up -d
+docker compose up -d --build
 ```
 
 deverá disponibilizar frontend, `/api/health` e conexão saudável com o PostGIS pelo Nginx.
@@ -258,8 +258,23 @@ Ao concluir cada fase, adicionar nesta seção:
 
 ### Fase 0
 
+- commit: `5bd16ed` (`docs: define Geo Core V1 foundation`);
 - PRD revisado: `geo-core-v1-prd.md`;
 - arquitetura: `docs/ARCHITECTURE.md`;
 - decisões: `docs/adr/0001-composicao-de-modulos.md` e `docs/adr/0002-entrega-espacial-inicial.md`;
 - código criado: nenhum.
 
+### Fase 1
+
+- commit planejado: `chore: bootstrap integrated development environment`;
+- `docker compose config --quiet`: aprovado;
+- `docker compose build`: frontend e backend construídos;
+- `docker compose up -d`: database, backend, frontend e Nginx saudáveis;
+- `GET /`: HTTP 200 via Nginx;
+- `GET /api/health`: HTTP 200 com `{"status":"ok","database":"ok"}`;
+- `GET /api/openapi.json`: HTTP 200 via Nginx;
+- frontend: ESLint, Prettier, 2 testes Vitest e build de produção aprovados;
+- backend: Ruff lint/format, 2 testes Pytest e conexão Alembic aprovados;
+- `npm audit`: nenhuma vulnerabilidade conhecida reportada;
+- limitação conhecida: a imagem oficial `postgis/postgis:17-3.5` é AMD64 e usa emulação do Docker Desktop em Apple Silicon;
+- MapLibre, Application Shell, catálogo de camadas e migrations de domínio não foram antecipados.

@@ -1,0 +1,97 @@
+services:
+  database:
+    image: postgis/postgis:17-3.5
+    platform: ${POSTGIS_PLATFORM:-linux/amd64}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-geo_core}
+      POSTGRES_USER: ${POSTGRES_USER:-geo_core}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geo_core_local}
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_NAME: ${APP_NAME:-Geo Core API}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-geo_core}:${POSTGRES_PASSWORD:-geo_core_local}@database:5432/${POSTGRES_DB:-geo_core}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5173').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1/nginx-health",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  frontend_node_modules:
+  postgis_data:
