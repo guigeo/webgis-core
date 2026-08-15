@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.api.layers import get_layer_service
 from app.main import app
+from app.schemas.layers import LayerDefinition
 from app.services.layers import InvalidFeatureQueryError, LayerNotFoundError
 
 client = TestClient(app)
@@ -17,11 +18,19 @@ class StubLayerService:
                 "id": "ibge-rmsp-municipalities",
                 "name": "Municípios da RMSP",
                 "description": "Limites municipais",
+                "group_name": "Referência territorial",
+                "sort_order": 10,
                 "geometry_type": "MultiPolygon",
                 "fields": [
-                    {"name": "name", "label": "Município", "type": "string"},
+                    {
+                        "name": "name",
+                        "label": "Município",
+                        "type": "string",
+                        "popup": "title",
+                    },
                 ],
                 "style": {
+                    "kind": "fill",
                     "fillColor": "#175CD3",
                     "fillOpacity": 0.24,
                     "lineColor": "#175CD3",
@@ -35,7 +44,13 @@ class StubLayerService:
                 "license_name": "Dados abertos do IBGE",
                 "license_url": "https://www.ibge.gov.br/",
                 "default_visible": True,
+                "default_opacity": 1,
                 "feature_limit": 50,
+                "metadata": {
+                    "summary": "Limites municipais",
+                    "updatedAt": "2026-08-15",
+                    "featureCount": 39,
+                },
             }
         ]
 
@@ -76,6 +91,7 @@ def test_catalog_exposes_public_definition_without_database_identifiers() -> Non
     assert response.status_code == 200
     layer = response.json()[0]
     assert layer["id"] == "ibge-rmsp-municipalities"
+    assert layer["groupName"] == "Referência territorial"
     assert layer["featureLimit"] == 50
     assert "source_table" not in layer
     assert layer["style"]["selectedFillColor"] == "#F79009"
@@ -116,3 +132,24 @@ def test_features_reject_limit_above_catalog_policy() -> None:
 
     assert response.status_code == 422
     assert response.json() == {"detail": "limit deve ser menor ou igual a 50"}
+
+
+def test_catalog_contract_accepts_circle_style_without_layer_specific_schema() -> None:
+    definition = StubLayerService().list_layers()[0]
+    definition["geometry_type"] = "Point"
+    definition["style"] = {
+        "kind": "circle",
+        "circleColor": "#0E9384",
+        "circleRadius": 5,
+        "strokeColor": "#FFFFFF",
+        "strokeWidth": 1.5,
+        "selectedColor": "#F79009",
+        "selectedRadius": 9,
+        "selectedStrokeColor": "#B54708",
+        "selectedStrokeWidth": 2,
+    }
+
+    serialized = LayerDefinition.model_validate(definition).model_dump(by_alias=True)
+
+    assert serialized["geometryType"] == "Point"
+    assert serialized["style"]["kind"] == "circle"

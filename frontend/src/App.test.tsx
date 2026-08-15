@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
@@ -7,6 +7,15 @@ import { AppTooltipProvider } from './components/ui/tooltip'
 import { appConfig } from './config/app.config'
 import { AppConfigProvider } from './config/provider'
 import { appConfigSchema, type AppConfig } from './config/schema'
+import type { LayerDefinition } from './core/layers/contracts'
+import { useLayerStore } from './core/layers/store'
+
+const mapAdapterSpies = vi.hoisted(() => ({
+  setLayerData: vi.fn(),
+  clearLayer: vi.fn(),
+  setLayerOpacity: vi.fn(),
+  setLayerOrder: vi.fn(),
+}))
 
 vi.mock('./core/map/maplibre-map-adapter', () => ({
   createMapLibreMapAdapter: () => ({
@@ -15,11 +24,13 @@ vi.mock('./core/map/maplibre-map-adapter', () => ({
       _fullscreenContainer: HTMLElement,
       events: {
         onReady: () => void
+        onFeatureSelect: (selection: null) => void
         onViewChange: (view: {
           center: [number, number]
           pointer: null
           zoom: number
         }) => void
+        onViewportChange: (bounds: [[number, number], [number, number]]) => void
       },
     ) => {
       events.onReady()
@@ -28,11 +39,19 @@ vi.mock('./core/map/maplibre-map-adapter', () => ({
         pointer: null,
         zoom: 10,
       })
+      events.onViewportChange([
+        [-47.35, -24.05],
+        [-45.92, -23.05],
+      ])
     },
     destroy: () => undefined,
     goHome: () => undefined,
     fitHomeBounds: () => undefined,
     toggleFullscreen: () => Promise.resolve(),
+    setLayerData: mapAdapterSpies.setLayerData,
+    clearLayer: mapAdapterSpies.clearLayer,
+    setLayerOpacity: mapAdapterSpies.setLayerOpacity,
+    setLayerOrder: mapAdapterSpies.setLayerOrder,
   }),
 }))
 
@@ -66,9 +85,96 @@ function mockHealthyServices() {
   )
 }
 
+const polygonLayer: LayerDefinition = {
+  id: 'polygons',
+  name: 'Municípios da RMSP',
+  description: 'Limites municipais',
+  groupName: 'Referência territorial',
+  sortOrder: 10,
+  geometryType: 'MultiPolygon',
+  fields: [
+    { name: 'name', label: 'Município', type: 'string', popup: 'title' },
+  ],
+  style: {
+    kind: 'fill',
+    fillColor: '#175CD3',
+    fillOpacity: 0.24,
+    lineColor: '#175CD3',
+    lineWidth: 1.4,
+    selectedFillColor: '#F79009',
+    selectedLineColor: '#B54708',
+    selectedLineWidth: 3,
+  },
+  attribution: 'Fonte: IBGE',
+  sourceUrl: 'https://example.com/source',
+  licenseName: 'Dados abertos',
+  licenseUrl: 'https://example.com/license',
+  defaultVisible: true,
+  defaultOpacity: 1,
+  featureLimit: 50,
+  metadata: {
+    summary: 'Limites municipais',
+    updatedAt: '2026-08-15',
+    featureCount: 39,
+  },
+}
+
+const pointLayer: LayerDefinition = {
+  ...polygonLayer,
+  id: 'points',
+  name: 'Pontos municipais da RMSP',
+  sortOrder: 5,
+  geometryType: 'Point',
+  style: {
+    kind: 'circle',
+    circleColor: '#0E9384',
+    circleRadius: 5,
+    strokeColor: '#FFFFFF',
+    strokeWidth: 1.5,
+    selectedColor: '#F79009',
+    selectedRadius: 9,
+    selectedStrokeColor: '#B54708',
+    selectedStrokeWidth: 2,
+  },
+}
+
+function mockLayerServices() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/health')) {
+        return new Response(JSON.stringify({ status: 'ok', database: 'ok' }), {
+          status: 200,
+        })
+      }
+      if (url.endsWith('/layers')) {
+        return new Response(JSON.stringify([pointLayer, polygonLayer]), {
+          status: 200,
+        })
+      }
+      return new Response(
+        JSON.stringify({
+          type: 'FeatureCollection',
+          features: [],
+          metadata: {
+            layerId: url.includes('points') ? 'points' : 'polygons',
+            returned: 0,
+            limit: 50,
+            truncated: false,
+          },
+        }),
+        { status: 200 },
+      )
+    }),
+  )
+}
+
 describe('App', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.clearAllMocks()
+    useLayerStore.setState({ order: [], runtime: {}, selection: null })
   })
 
   it('renderiza o shell e exibe a integração saudável', async () => {
@@ -144,5 +250,22 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fechar navegação' }))
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('compõe duas camadas do catálogo sem lógica específica no shell', async () => {
+    mockLayerServices()
+
+    renderApp()
+
+    expect(
+      await screen.findByText('Pontos municipais da RMSP'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Municípios da RMSP')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(mapAdapterSpies.setLayerData).toHaveBeenCalledTimes(2),
+    )
+    expect(
+      mapAdapterSpies.setLayerData.mock.calls.map(([layer]) => layer.id),
+    ).toEqual(expect.arrayContaining(['points', 'polygons']))
   })
 })

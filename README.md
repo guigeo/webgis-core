@@ -2,7 +2,7 @@
 
 Fundação WebGIS open source para derivar aplicações geográficas por configuração e composição de módulos.
 
-O projeto está em implementação incremental. A Fase 4 conecta a primeira camada de referência no fluxo PostGIS → API → MapLibre, com seleção e popup.
+O projeto está em implementação incremental. A Fase 5 transforma o fluxo PostGIS → API → MapLibre em um sistema genérico de camadas, com duas geometrias de referência, estado independente, legenda, seleção e popup.
 
 ## Requisitos
 
@@ -27,6 +27,8 @@ Acesse:
 - documentação OpenAPI: <http://localhost:8080/api/docs>.
 
 Na inicialização, o backend executa `alembic upgrade head`. A primeira migration cadastra e carrega os 39 municípios da Região Metropolitana de São Paulo a partir de um snapshot público do IBGE versionado no repositório.
+
+O painel de camadas permite controlar visibilidade, opacidade e ordem. Definições de grupo, estilo, campos do popup, metadados e atribuição vêm do catálogo da API; os componentes não conhecem os nomes das camadas ou tabelas.
 
 Para acompanhar os serviços:
 

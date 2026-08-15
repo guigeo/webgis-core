@@ -7,9 +7,14 @@ const layer: LayerDefinition = {
   id: 'ibge-rmsp-municipalities',
   name: 'Municípios da RMSP',
   description: 'Limites municipais',
+  groupName: 'Referência territorial',
+  sortOrder: 10,
   geometryType: 'MultiPolygon',
-  fields: [{ name: 'name', label: 'Município', type: 'string' }],
+  fields: [
+    { name: 'name', label: 'Município', type: 'string', popup: 'title' },
+  ],
   style: {
+    kind: 'fill',
     fillColor: '#175CD3',
     fillOpacity: 0.24,
     lineColor: '#175CD3',
@@ -23,7 +28,13 @@ const layer: LayerDefinition = {
   licenseName: 'Dados abertos do IBGE',
   licenseUrl: 'https://www.ibge.gov.br/',
   defaultVisible: true,
+  defaultOpacity: 1,
   featureLimit: 50,
+  metadata: {
+    summary: 'Limites municipais',
+    updatedAt: '2026-08-15',
+    featureCount: 39,
+  },
 }
 
 describe('layer services', () => {

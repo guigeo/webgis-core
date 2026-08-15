@@ -1,7 +1,8 @@
 import type { CSSProperties } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useAppConfig } from '../../config/context'
+import { useLayerStore } from '../../core/layers/store'
 import { useHealthQuery } from '../../services/health'
 import { useLayerCatalogQuery } from '../../services/layers'
 import { MapWorkspace } from '../gis/map-workspace'
@@ -14,17 +15,19 @@ export function ApplicationShell() {
   const config = useAppConfig()
   const health = useHealthQuery()
   const layerCatalog = useLayerCatalogQuery()
+  const initializeLayers = useLayerStore((state) => state.initializeLayers)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
-  const [layerVisible, setLayerVisible] = useState(true)
+
+  useEffect(() => {
+    if (layerCatalog.data) initializeLayers(layerCatalog.data)
+  }, [initializeLayers, layerCatalog.data])
 
   const serviceStatus: ServiceStatus = health.isPending
     ? 'loading'
     : health.isError
       ? 'error'
       : 'ready'
-  const defaultLayer = layerCatalog.data?.find((layer) => layer.defaultVisible)
-  const activeLayer = layerVisible ? defaultLayer : undefined
   const layerCatalogStatus = layerCatalog.isPending
     ? 'loading'
     : layerCatalog.isError
@@ -54,13 +57,7 @@ export function ApplicationShell() {
               collapsed={sidebarCollapsed}
               layerCatalogStatus={layerCatalogStatus}
               layers={layerCatalog.data ?? []}
-              visibleLayerId={activeLayer?.id ?? null}
               serviceStatus={serviceStatus}
-              onToggleLayer={(layerId) =>
-                setLayerVisible(
-                  (current) => defaultLayer?.id !== layerId || !current,
-                )
-              }
               onToggleCollapse={() =>
                 setSidebarCollapsed((current) => !current)
               }
@@ -68,7 +65,10 @@ export function ApplicationShell() {
           </div>
         )}
 
-        <MapWorkspace activeLayer={activeLayer} serviceStatus={serviceStatus} />
+        <MapWorkspace
+          layers={layerCatalog.data ?? []}
+          serviceStatus={serviceStatus}
+        />
       </div>
 
       {config.ui.sidebar && (
@@ -76,13 +76,7 @@ export function ApplicationShell() {
           open={mobileNavigationOpen}
           layerCatalogStatus={layerCatalogStatus}
           layers={layerCatalog.data ?? []}
-          visibleLayerId={activeLayer?.id ?? null}
           serviceStatus={serviceStatus}
-          onToggleLayer={(layerId) =>
-            setLayerVisible(
-              (current) => defaultLayer?.id !== layerId || !current,
-            )
-          }
           onOpenChange={setMobileNavigationOpen}
         />
       )}

@@ -196,6 +196,10 @@ O contrato inicial de feições deverá definir:
 
 Parâmetros externos nunca poderão determinar diretamente schema, tabela, coluna ou fragmento SQL.
 
+`LayerDefinition` também é a fonte única de apresentação da camada. O contrato discrimina a simbologia por `kind` — inicialmente `fill` e `circle` — e publica grupo, ordem inicial, opacidade, campos do popup, metadados e atribuição. O Layer Manager, a legenda, o popup e o adaptador de mapa interpretam esse mesmo contrato; nenhum deles cria condicionais por identificador ou nome de camada.
+
+Visibilidade, opacidade, ordem, estado de carregamento e seleção pertencem ao store compartilhado. TanStack Query mantém o GeoJSON de cada viewport como estado de servidor, enquanto o adaptador encapsula a sincronização dessas intenções com o MapLibre.
+
 GeoJSON é suficiente para o primeiro contrato desde que o volume de referência e o limite de resposta sejam medidos. Vector tiles serão introduzidos quando medições ou um produto derivado comprovarem a necessidade; consulte [ADR-0002](adr/0002-entrega-espacial-inicial.md).
 
 ## 8. Estrutura alvo do repositório
@@ -300,4 +304,3 @@ Testes não deverão depender de detalhes internos do MapLibre quando puderem va
 
 - [ADR-0001 — Composição de módulos em build time](adr/0001-composicao-de-modulos.md)
 - [ADR-0002 — GeoJSON limitado como entrega espacial inicial](adr/0002-entrega-espacial-inicial.md)
-

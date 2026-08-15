@@ -17,6 +17,7 @@ import type {
 export function useMapCore(
   settings: MapSettings,
   createAdapter: MapAdapterFactory,
+  onFeatureSelect?: (selection: LayerSelection | null) => void,
 ) {
   const workspaceRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -24,7 +25,6 @@ export function useMapCore(
   const [loadState, setLoadState] = useState<MapLoadState>('loading')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [viewportBounds, setViewportBounds] = useState<MapBounds | null>(null)
-  const [selection, setSelection] = useState<LayerSelection | null>(null)
   const [viewState, setViewState] = useState<MapViewState>({
     center: settings.center,
     pointer: null,
@@ -48,7 +48,7 @@ export function useMapCore(
         setLoadState('error')
         setErrorMessage(error.message)
       },
-      onFeatureSelect: setSelection,
+      onFeatureSelect: (selection) => onFeatureSelect?.(selection),
       onViewChange: setViewState,
       onViewportChange: setViewportBounds,
     })
@@ -57,7 +57,7 @@ export function useMapCore(
       adapter.destroy()
       adapterRef.current = null
     }
-  }, [createAdapter, settings])
+  }, [createAdapter, onFeatureSelect, settings])
 
   const goHome = useCallback(() => adapterRef.current?.goHome(), [])
   const fitHomeBounds = useCallback(
@@ -69,12 +69,24 @@ export function useMapCore(
     [],
   )
   const setLayerData = useCallback(
-    (layer: LayerDefinition, features: LayerFeatureCollection) =>
-      adapterRef.current?.setLayerData(layer, features),
+    (
+      layer: LayerDefinition,
+      features: LayerFeatureCollection,
+      opacity: number,
+    ) => adapterRef.current?.setLayerData(layer, features, opacity),
     [],
   )
   const clearLayer = useCallback(
     (layerId: string) => adapterRef.current?.clearLayer(layerId),
+    [],
+  )
+  const setLayerOpacity = useCallback(
+    (layerId: string, opacity: number) =>
+      adapterRef.current?.setLayerOpacity(layerId, opacity),
+    [],
+  )
+  const setLayerOrder = useCallback(
+    (layerIds: string[]) => adapterRef.current?.setLayerOrder(layerIds),
     [],
   )
 
@@ -85,11 +97,12 @@ export function useMapCore(
     errorMessage,
     viewState,
     viewportBounds,
-    selection,
     goHome,
     fitHomeBounds,
     toggleFullscreen,
     setLayerData,
     clearLayer,
+    setLayerOpacity,
+    setLayerOrder,
   }
 }

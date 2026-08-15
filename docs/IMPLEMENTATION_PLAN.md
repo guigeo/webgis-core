@@ -1,7 +1,7 @@
 # Plano de Implementação — Geo Core V1
 
-**Status geral:** Fase 4 em revisão
-**Próximo gate:** aprovação visual da primeira camada, seleção e popup
+**Status geral:** Fase 5 concluída
+**Próximo gate:** definir o escopo da Fase 6 — prova de derivação
 **Última atualização:** 2026-08-15
 
 ## 1. Forma de trabalho
@@ -28,8 +28,8 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 | 1 — Bootstrap executável          | Concluída    | ambiente integrado sobe por Docker Compose               |
 | 2 — Application Shell             | Concluída    | branding e shell controlados por configuração            |
 | 3 — Map Core                      | Concluída    | mapa funcional com acesso organizado à instância         |
-| 4 — Primeira camada ponta a ponta | Em revisão   | PostGIS → API → mapa → seleção → popup                   |
-| 5 — Sistema genérico de camadas   | Não iniciada | segunda camada não altera componentes genéricos          |
+| 4 — Primeira camada ponta a ponta | Concluída    | PostGIS → API → mapa → seleção → popup                   |
+| 5 — Sistema genérico de camadas   | Concluída    | segunda camada não altera componentes genéricos          |
 | 6 — Prova de derivação            | Não iniciada | módulo pode ser adicionado e removido sem alterar o Core |
 | 7 — Ferramentas e acabamento      | Não iniciada | capacidades priorizadas funcionam por configuração       |
 | 8 — Qualidade e entrega           | Não iniciada | CI, documentação e build/deploy validados                |
@@ -175,14 +175,14 @@ Uma feição deverá percorrer PostGIS → API → MapLibre e possuir identidade
 
 ### Escopo previsto
 
-- [ ] consolidar `LayerDefinition` a partir da Fase 4;
-- [ ] implementar grupos, visibilidade, ordem e opacidade;
-- [ ] implementar estados de carregamento e erro por camada;
-- [ ] compartilhar a configuração entre estilo e legenda;
-- [ ] tornar popup configurável por campos;
-- [ ] adicionar metadados e atribuição;
-- [ ] adicionar segunda camada com geometria ou simbologia diferente;
-- [ ] testar Layer Manager, legenda e popup.
+- [x] consolidar `LayerDefinition` a partir da Fase 4;
+- [x] implementar grupos, visibilidade, ordem e opacidade;
+- [x] implementar estados de carregamento e erro por camada;
+- [x] compartilhar a configuração entre estilo e legenda;
+- [x] tornar popup configurável por campos;
+- [x] adicionar metadados e atribuição;
+- [x] adicionar segunda camada com geometria ou simbologia diferente;
+- [x] testar Layer Manager, legenda e popup.
 
 ### Gate verificável
 
@@ -317,6 +317,7 @@ Ao concluir cada fase, adicionar nesta seção:
 ### Fase 4
 
 - branch: `agent/first-layer`;
+- commit: `81aa253` (`feat: add first end-to-end reference layer`), publicado em `origin/agent/first-layer`;
 - migration `20260815_0001` cria `core.layers`, a tabela espacial de referência e o índice GiST;
 - snapshot oficial do IBGE com 39 municípios da Região Metropolitana de São Paulo carregado automaticamente;
 - catálogo publica estilo, campos permitidos, atribuição e licença sem expor nomes físicos do banco;
@@ -329,3 +330,22 @@ Ao concluir cada fase, adicionar nesta seção:
 - `GET /api/health`: HTTP 200; catálogo: HTTP 200; consulta espacial: 39 feições; truncamento com limite 10 confirmado; bbox invertida: HTTP 422;
 - inspeção visual automatizada indisponível porque não havia navegador conectado à sessão; aplicação disponível em `http://localhost:8080` para revisão manual do clique e popup;
 - fora do escopo preservado: sem Layer Manager completo, filtros arbitrários, busca, vector tiles ou segunda camada.
+
+### Fase 5
+
+- branch: `agent/layer-system`;
+- migration `20260815_0002` amplia `core.layers` com grupo, ordem, opacidade e metadados de apresentação;
+- `LayerDefinition` consolidada com estilos discriminados `fill` e `circle` e campos de popup `title`, `detail` ou `hidden`;
+- segunda camada persistida em `reference.rmsp_municipality_points`, com 39 pontos SRID 4326 derivados por `ST_PointOnSurface` e índice GiST;
+- store Zustand centraliza visibilidade, opacidade, ordem, loading/erro e seleção sem armazenar a instância do MapLibre;
+- cada camada possui consulta TanStack Query e lifecycle independentes por viewport;
+- Layer Manager implementa grupos, liga/desliga, reordenação, opacidade, estado e metadados;
+- legenda e popup derivam da mesma definição usada pelo adaptador do mapa;
+- teste integrado prova que duas camadas do catálogo percorrem os componentes genéricos sem lógica específica no shell;
+- frontend: ESLint, Prettier, 22 testes Vitest e build de produção aprovados;
+- backend: Ruff e 24 testes Pytest aprovados;
+- stack reconstruída com database, backend, frontend e Nginx saudáveis;
+- catálogo: duas camadas HTTP 200; camada de pontos: 39 feições persistidas, tipo `Point`, SRID 4326 e 38 pontos dentro da extensão inicial;
+- inspeção visual automatizada indisponível porque não havia navegador conectado à sessão; aplicação disponível em `http://localhost:8080` para revisão manual;
+- revisão visual e funcional aprovada em 2026-08-15;
+- fora do escopo preservado: sem filtros arbitrários, busca, vector tiles ou regras de negócio específicas.

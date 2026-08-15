@@ -41,6 +41,8 @@ describe('useMapCore', () => {
     const toggleFullscreen = vi.fn().mockResolvedValue(undefined)
     const setLayerData = vi.fn()
     const clearLayer = vi.fn()
+    const setLayerOpacity = vi.fn()
+    const setLayerOrder = vi.fn()
     const destroy = vi.fn()
     let receivedEvents: MapAdapterEvents | undefined
 
@@ -64,6 +66,8 @@ describe('useMapCore', () => {
       toggleFullscreen,
       setLayerData,
       clearLayer,
+      setLayerOpacity,
+      setLayerOrder,
     }
     const createAdapter = vi.fn(() => adapter)
 
@@ -96,6 +100,8 @@ describe('useMapCore', () => {
       toggleFullscreen: vi.fn().mockResolvedValue(undefined),
       setLayerData: vi.fn(),
       clearLayer: vi.fn(),
+      setLayerOpacity: vi.fn(),
+      setLayerOrder: vi.fn(),
     }
     const createAdapter: MapAdapterFactory = () => adapter
 
