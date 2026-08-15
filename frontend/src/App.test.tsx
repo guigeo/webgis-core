@@ -8,6 +8,34 @@ import { appConfig } from './config/app.config'
 import { AppConfigProvider } from './config/provider'
 import { appConfigSchema, type AppConfig } from './config/schema'
 
+vi.mock('./core/map/maplibre-map-adapter', () => ({
+  createMapLibreMapAdapter: () => ({
+    initialize: (
+      _container: HTMLElement,
+      _fullscreenContainer: HTMLElement,
+      events: {
+        onReady: () => void
+        onViewChange: (view: {
+          center: [number, number]
+          pointer: null
+          zoom: number
+        }) => void
+      },
+    ) => {
+      events.onReady()
+      events.onViewChange({
+        center: [-46.6333, -23.5505],
+        pointer: null,
+        zoom: 10,
+      })
+    },
+    destroy: () => undefined,
+    goHome: () => undefined,
+    fitHomeBounds: () => undefined,
+    toggleFullscreen: () => Promise.resolve(),
+  }),
+}))
+
 function renderApp(config: AppConfig = appConfig) {
   const queryClient = new QueryClient({
     defaultOptions: {

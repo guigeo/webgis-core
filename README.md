@@ -2,7 +2,7 @@
 
 Fundação WebGIS open source para derivar aplicações geográficas por configuração e composição de módulos.
 
-O projeto está em implementação incremental. A Fase 2 entrega o Application Shell configurável; MapLibre, mapa real e camadas pertencem às fases seguintes.
+O projeto está em implementação incremental. A Fase 3 integra o núcleo de mapa ao Application Shell; dados de negócio e camadas PostGIS pertencem às fases seguintes.
 
 ## Requisitos
 
@@ -81,11 +81,18 @@ A configuração de produto fica em `frontend/src/config/app.config.ts` e é val
 
 - nome, sigla, descrição e logo;
 - cores primária e de destaque;
-- centro e níveis de zoom futuros do mapa;
+- centro, zoom e extensão inicial do mapa;
+- basemap, atribuição e referência aos termos de uso;
 - visibilidade de sidebar, toolbar e status bar;
 - seções genéricas habilitadas.
 
 Configuração inválida interrompe a inicialização com erro explícito. Segredos e valores do ambiente de deploy não devem ser adicionados a esse arquivo.
+
+### Basemap padrão
+
+O basemap OpenStreetMap Standard está configurado para desenvolvimento, demonstração e tráfego interativo modesto. Ele possui atribuição visível e não deve ser tratado como infraestrutura garantida para produtos comerciais: não há SLA, prefetch e uso offline são proibidos e o serviço pode bloquear uso inadequado.
+
+Antes de entregar uma aplicação derivada em produção, avalie o volume previsto e configure um provedor compatível ou tiles próprios. A URL, a atribuição e os termos ficam centralizados em `map.basemap`; não os espalhe pelos componentes.
 
 ## Documentação
 

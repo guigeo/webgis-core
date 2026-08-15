@@ -9,6 +9,8 @@ const centerSchema = z.tuple([
   z.number().min(-90).max(90),
 ])
 
+const boundsSchema = z.tuple([centerSchema, centerSchema])
+
 export const appConfigSchema = z
   .object({
     version: z.literal(1),
@@ -27,6 +29,16 @@ export const appConfigSchema = z
       zoom: z.number().min(0).max(24),
       minZoom: z.number().min(0).max(24),
       maxZoom: z.number().min(0).max(24),
+      homeBounds: boundsSchema,
+      basemap: z.object({
+        id: z.string().trim().min(1),
+        name: z.string().trim().min(1),
+        tiles: z.array(z.url()).min(1),
+        tileSize: z.union([z.literal(256), z.literal(512)]),
+        maxZoom: z.number().int().min(0).max(24),
+        attribution: z.string().trim().min(1),
+        termsUrl: z.url(),
+      }),
     }),
     ui: z.object({
       sidebar: z.boolean(),
@@ -55,6 +67,16 @@ export const appConfigSchema = z
         code: 'custom',
         message: 'zoom deve estar entre minZoom e maxZoom',
         path: ['map', 'zoom'],
+      })
+    }
+
+    const [[west, south], [east, north]] = config.map.homeBounds
+
+    if (west >= east || south >= north) {
+      context.addIssue({
+        code: 'custom',
+        message: 'homeBounds deve seguir [sudoeste, nordeste]',
+        path: ['map', 'homeBounds'],
       })
     }
 
