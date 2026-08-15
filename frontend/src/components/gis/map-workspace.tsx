@@ -1,24 +1,48 @@
 import { AlertTriangle, LoaderCircle, Map as MapIcon } from 'lucide-react'
+import { useEffect } from 'react'
 
 import { useAppConfig } from '../../config/context'
+import type { LayerDefinition } from '../../core/layers/contracts'
 import type { MapAdapterFactory } from '../../core/map/contracts'
 import { createMapLibreMapAdapter } from '../../core/map/maplibre-map-adapter'
 import { useMapCore } from '../../core/map/use-map-core'
+import { useLayerFeaturesQuery } from '../../services/layers'
 import { StatusBar } from '../shell/status-bar'
 import { Toolbar } from '../shell/toolbar'
 import type { ServiceStatus } from '../shell/types'
 
 interface MapWorkspaceProps {
+  activeLayer?: LayerDefinition
   serviceStatus: ServiceStatus
   createAdapter?: MapAdapterFactory
 }
 
 export function MapWorkspace({
+  activeLayer,
   serviceStatus,
   createAdapter = createMapLibreMapAdapter,
 }: MapWorkspaceProps) {
   const config = useAppConfig()
   const map = useMapCore(config.map, createAdapter)
+  const { clearLayer, setLayerData } = map
+  const layerFeatures = useLayerFeaturesQuery(
+    activeLayer,
+    map.viewportBounds,
+    map.loadState === 'ready',
+  )
+
+  useEffect(() => {
+    if (activeLayer && layerFeatures.data && map.loadState === 'ready') {
+      setLayerData(activeLayer, layerFeatures.data)
+    }
+  }, [activeLayer, layerFeatures.data, map.loadState, setLayerData])
+
+  useEffect(() => {
+    const layerId = activeLayer?.id
+    return () => {
+      if (layerId) clearLayer(layerId)
+    }
+  }, [activeLayer?.id, clearLayer])
 
   return (
     <div
@@ -45,6 +69,35 @@ export function MapWorkspace({
           <span className="text-slate-300">/</span>
           {config.map.basemap.name}
         </div>
+
+        {activeLayer && map.loadState === 'ready' && (
+          <div
+            className="pointer-events-none absolute right-14 top-4 z-10 flex items-center gap-2 rounded-lg border border-white/80 bg-white/90 px-3 py-2 text-xs text-slate-600 shadow-sm backdrop-blur"
+            role={layerFeatures.isError ? 'alert' : 'status'}
+          >
+            {layerFeatures.isFetching ? (
+              <LoaderCircle
+                aria-hidden="true"
+                className="size-3.5 animate-spin text-[var(--color-brand)]"
+              />
+            ) : layerFeatures.isError ? (
+              <AlertTriangle
+                aria-hidden="true"
+                className="size-3.5 text-amber-600"
+              />
+            ) : (
+              <span
+                className="size-2 rounded-full bg-[var(--color-brand)]"
+                aria-hidden="true"
+              />
+            )}
+            {layerFeatures.isFetching
+              ? 'Atualizando camada'
+              : layerFeatures.isError
+                ? 'Camada indisponível'
+                : `${layerFeatures.data?.metadata.returned ?? 0} feições no mapa`}
+          </div>
+        )}
 
         {map.loadState !== 'ready' && (
           <div className="absolute inset-0 z-20 grid place-items-center bg-slate-100/75 px-6 backdrop-blur-[2px]">

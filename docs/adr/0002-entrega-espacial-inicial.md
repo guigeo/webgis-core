@@ -34,3 +34,6 @@ Os limites numéricos serão definidos e medidos durante a Fase 4, usando os dad
 
 Introduzir MVT/Martin, PMTiles ou outra estratégia quando medições mostrarem que o orçamento de resposta é insuficiente, ou quando um produto derivado exigir volumes incompatíveis com GeoJSON por viewport.
 
+## Medição da Fase 4
+
+A primeira camada possui 39 municípios e gera 223.223 bytes sem compressão na extensão inicial usando a geometria de qualidade máxima do IBGE. O limite máximo foi fixado em 50 feições por requisição, com indicação explícita de truncamento. A origem, o método e o orçamento estão registrados em [Dados de referência](../DATASETS.md).

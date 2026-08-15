@@ -2,7 +2,7 @@
 
 Fundação WebGIS open source para derivar aplicações geográficas por configuração e composição de módulos.
 
-O projeto está em implementação incremental. A Fase 3 integra o núcleo de mapa ao Application Shell; dados de negócio e camadas PostGIS pertencem às fases seguintes.
+O projeto está em implementação incremental. A Fase 4 conecta a primeira camada de referência no fluxo PostGIS → API → MapLibre, com seleção e popup.
 
 ## Requisitos
 
@@ -25,6 +25,8 @@ Acesse:
 - aplicação: <http://localhost:8080>;
 - health da API: <http://localhost:8080/api/health>;
 - documentação OpenAPI: <http://localhost:8080/api/docs>.
+
+Na inicialização, o backend executa `alembic upgrade head`. A primeira migration cadastra e carrega os 39 municípios da Região Metropolitana de São Paulo a partir de um snapshot público do IBGE versionado no repositório.
 
 Para acompanhar os serviços:
 
@@ -99,6 +101,7 @@ Antes de entregar uma aplicação derivada em produção, avalie o volume previs
 - [PRD](geo-core-v1-prd.md)
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Plano de implementação](docs/IMPLEMENTATION_PLAN.md)
+- [Dados de referência](docs/DATASETS.md)
 - [Decisões arquiteturais](docs/adr/)
 
 ## Estado

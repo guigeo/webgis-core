@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type {
+  LayerDefinition,
+  LayerFeatureCollection,
+  LayerSelection,
+} from '../layers/contracts'
+import type {
   MapAdapter,
   MapAdapterFactory,
+  MapBounds,
   MapLoadState,
   MapSettings,
   MapViewState,
@@ -17,6 +23,8 @@ export function useMapCore(
   const adapterRef = useRef<MapAdapter | null>(null)
   const [loadState, setLoadState] = useState<MapLoadState>('loading')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [viewportBounds, setViewportBounds] = useState<MapBounds | null>(null)
+  const [selection, setSelection] = useState<LayerSelection | null>(null)
   const [viewState, setViewState] = useState<MapViewState>({
     center: settings.center,
     pointer: null,
@@ -40,7 +48,9 @@ export function useMapCore(
         setLoadState('error')
         setErrorMessage(error.message)
       },
+      onFeatureSelect: setSelection,
       onViewChange: setViewState,
+      onViewportChange: setViewportBounds,
     })
 
     return () => {
@@ -58,6 +68,15 @@ export function useMapCore(
     () => adapterRef.current?.toggleFullscreen() ?? Promise.resolve(),
     [],
   )
+  const setLayerData = useCallback(
+    (layer: LayerDefinition, features: LayerFeatureCollection) =>
+      adapterRef.current?.setLayerData(layer, features),
+    [],
+  )
+  const clearLayer = useCallback(
+    (layerId: string) => adapterRef.current?.clearLayer(layerId),
+    [],
+  )
 
   return {
     workspaceRef,
@@ -65,8 +84,12 @@ export function useMapCore(
     loadState,
     errorMessage,
     viewState,
+    viewportBounds,
+    selection,
     goHome,
     fitHomeBounds,
     toggleFullscreen,
+    setLayerData,
+    clearLayer,
   }
 }

@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { useAppConfig } from '../../config/context'
 import { useHealthQuery } from '../../services/health'
+import { useLayerCatalogQuery } from '../../services/layers'
 import { MapWorkspace } from '../gis/map-workspace'
 import { Header } from './header'
 import { MobileNavigation } from './mobile-navigation'
@@ -12,12 +13,21 @@ import type { ServiceStatus } from './types'
 export function ApplicationShell() {
   const config = useAppConfig()
   const health = useHealthQuery()
+  const layerCatalog = useLayerCatalogQuery()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
+  const [layerVisible, setLayerVisible] = useState(true)
 
   const serviceStatus: ServiceStatus = health.isPending
     ? 'loading'
     : health.isError
+      ? 'error'
+      : 'ready'
+  const defaultLayer = layerCatalog.data?.find((layer) => layer.defaultVisible)
+  const activeLayer = layerVisible ? defaultLayer : undefined
+  const layerCatalogStatus = layerCatalog.isPending
+    ? 'loading'
+    : layerCatalog.isError
       ? 'error'
       : 'ready'
 
@@ -42,7 +52,15 @@ export function ApplicationShell() {
           <div className="hidden md:flex">
             <Sidebar
               collapsed={sidebarCollapsed}
+              layerCatalogStatus={layerCatalogStatus}
+              layers={layerCatalog.data ?? []}
+              visibleLayerId={activeLayer?.id ?? null}
               serviceStatus={serviceStatus}
+              onToggleLayer={(layerId) =>
+                setLayerVisible(
+                  (current) => defaultLayer?.id !== layerId || !current,
+                )
+              }
               onToggleCollapse={() =>
                 setSidebarCollapsed((current) => !current)
               }
@@ -50,13 +68,21 @@ export function ApplicationShell() {
           </div>
         )}
 
-        <MapWorkspace serviceStatus={serviceStatus} />
+        <MapWorkspace activeLayer={activeLayer} serviceStatus={serviceStatus} />
       </div>
 
       {config.ui.sidebar && (
         <MobileNavigation
           open={mobileNavigationOpen}
+          layerCatalogStatus={layerCatalogStatus}
+          layers={layerCatalog.data ?? []}
+          visibleLayerId={activeLayer?.id ?? null}
           serviceStatus={serviceStatus}
+          onToggleLayer={(layerId) =>
+            setLayerVisible(
+              (current) => defaultLayer?.id !== layerId || !current,
+            )
+          }
           onOpenChange={setMobileNavigationOpen}
         />
       )}

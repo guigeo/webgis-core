@@ -39,6 +39,8 @@ describe('useMapCore', () => {
     const goHome = vi.fn()
     const fitHomeBounds = vi.fn()
     const toggleFullscreen = vi.fn().mockResolvedValue(undefined)
+    const setLayerData = vi.fn()
+    const clearLayer = vi.fn()
     const destroy = vi.fn()
     let receivedEvents: MapAdapterEvents | undefined
 
@@ -51,11 +53,17 @@ describe('useMapCore', () => {
           pointer: [-43.21, -22.91],
           zoom: 12,
         })
+        events.onViewportChange([
+          [-47, -24],
+          [-46, -23],
+        ])
       },
       destroy,
       goHome,
       fitHomeBounds,
       toggleFullscreen,
+      setLayerData,
+      clearLayer,
     }
     const createAdapter = vi.fn(() => adapter)
 
@@ -86,6 +94,8 @@ describe('useMapCore', () => {
       goHome: vi.fn(),
       fitHomeBounds: vi.fn(),
       toggleFullscreen: vi.fn().mockResolvedValue(undefined),
+      setLayerData: vi.fn(),
+      clearLayer: vi.fn(),
     }
     const createAdapter: MapAdapterFactory = () => adapter
 

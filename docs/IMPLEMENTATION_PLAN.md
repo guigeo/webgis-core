@@ -1,7 +1,7 @@
 # Plano de Implementação — Geo Core V1
 
-**Status geral:** Fase 3 em revisão
-**Próximo gate:** aprovação visual e funcional do Map Core
+**Status geral:** Fase 4 em revisão
+**Próximo gate:** aprovação visual da primeira camada, seleção e popup
 **Última atualização:** 2026-08-15
 
 ## 1. Forma de trabalho
@@ -27,8 +27,8 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 | 0 — Especificação e arquitetura   | Concluída    | baseline documental aprovada                             |
 | 1 — Bootstrap executável          | Concluída    | ambiente integrado sobe por Docker Compose               |
 | 2 — Application Shell             | Concluída    | branding e shell controlados por configuração            |
-| 3 — Map Core                      | Em revisão   | mapa funcional com acesso organizado à instância         |
-| 4 — Primeira camada ponta a ponta | Não iniciada | PostGIS → API → mapa → seleção → popup                   |
+| 3 — Map Core                      | Concluída    | mapa funcional com acesso organizado à instância         |
+| 4 — Primeira camada ponta a ponta | Em revisão   | PostGIS → API → mapa → seleção → popup                   |
 | 5 — Sistema genérico de camadas   | Não iniciada | segunda camada não altera componentes genéricos          |
 | 6 — Prova de derivação            | Não iniciada | módulo pode ser adicionado e removido sem alterar o Core |
 | 7 — Ferramentas e acabamento      | Não iniciada | capacidades priorizadas funcionam por configuração       |
@@ -149,15 +149,15 @@ O mapa deverá iniciar, reagir à configuração e ser destruído sem vazamentos
 
 ### Escopo previsto
 
-- [ ] definir migration inicial de `core.layers` e estilo associado;
-- [ ] cadastrar uma camada e carregar dados públicos de referência;
-- [ ] documentar fonte, licença e atribuição;
-- [ ] criar API de catálogo;
-- [ ] criar API GeoJSON por `bbox` com allowlist e limite;
-- [ ] definir limite numérico a partir de medição;
-- [ ] renderizar a camada no MapLibre;
-- [ ] implementar clique, seleção, highlight e popup;
-- [ ] testar o fluxo e casos de limite/erro.
+- [x] definir migration inicial de `core.layers` e estilo associado;
+- [x] cadastrar uma camada e carregar dados públicos de referência;
+- [x] documentar fonte, licença e atribuição;
+- [x] criar API de catálogo;
+- [x] criar API GeoJSON por `bbox` com allowlist e limite;
+- [x] definir limite numérico a partir de medição;
+- [x] renderizar a camada no MapLibre;
+- [x] implementar clique, seleção, highlight e popup;
+- [x] testar o fluxo e casos de limite/erro.
 
 ### Fora de escopo
 
@@ -313,3 +313,19 @@ Ao concluir cada fase, adicionar nesta seção:
 - inspeção visual automatizada indisponível porque não havia navegador conectado à sessão; revisão manual disponível em `http://localhost:8080`;
 - limitação conhecida: o build concentra MapLibre e aplicação em um bundle JS de aproximadamente 1,36 MB minificado; code splitting será avaliado quando houver rotas ou módulos que permitam separação útil;
 - dados PostGIS, camadas de negócio, seleção, legenda e medição não foram antecipados.
+
+### Fase 4
+
+- branch: `agent/first-layer`;
+- migration `20260815_0001` cria `core.layers`, a tabela espacial de referência e o índice GiST;
+- snapshot oficial do IBGE com 39 municípios da Região Metropolitana de São Paulo carregado automaticamente;
+- catálogo publica estilo, campos permitidos, atribuição e licença sem expor nomes físicos do banco;
+- consulta GeoJSON exige `bbox` EPSG:4326 válida, respeita allowlist, ordena por identidade estável e informa truncamento;
+- resposta completa na extensão inicial: 39 feições e 223.223 bytes sem compressão, usando a qualidade máxima do IBGE; limite máximo definido em 50;
+- frontend consulta por viewport, renderiza o estilo do catálogo e apresenta seleção, highlight e popup configurado pelos campos publicáveis;
+- frontend: ESLint, Prettier, 17 testes Vitest e build de produção aprovados;
+- backend: Ruff e 23 testes Pytest aprovados;
+- stack reconstruída com database, backend, frontend e Nginx saudáveis;
+- `GET /api/health`: HTTP 200; catálogo: HTTP 200; consulta espacial: 39 feições; truncamento com limite 10 confirmado; bbox invertida: HTTP 422;
+- inspeção visual automatizada indisponível porque não havia navegador conectado à sessão; aplicação disponível em `http://localhost:8080` para revisão manual do clique e popup;
+- fora do escopo preservado: sem Layer Manager completo, filtros arbitrários, busca, vector tiles ou segunda camada.

@@ -1,19 +1,28 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 
+import type { LayerDefinition } from '../../core/layers/contracts'
 import { Button } from '../ui/button'
 import { Sidebar } from './sidebar'
 import type { ServiceStatus } from './types'
 
 interface MobileNavigationProps {
   open: boolean
+  layerCatalogStatus: ServiceStatus
+  layers: LayerDefinition[]
+  visibleLayerId: string | null
   serviceStatus: ServiceStatus
+  onToggleLayer: (layerId: string) => void
   onOpenChange: (open: boolean) => void
 }
 
 export function MobileNavigation({
   open,
+  layerCatalogStatus,
+  layers,
+  visibleLayerId,
   serviceStatus,
+  onToggleLayer,
   onOpenChange,
 }: MobileNavigationProps) {
   return (
@@ -33,7 +42,14 @@ export function MobileNavigation({
               <X aria-hidden="true" className="size-4" />
             </Button>
           </Dialog.Close>
-          <Sidebar mobile serviceStatus={serviceStatus} />
+          <Sidebar
+            mobile
+            layerCatalogStatus={layerCatalogStatus}
+            layers={layers}
+            visibleLayerId={visibleLayerId}
+            serviceStatus={serviceStatus}
+            onToggleLayer={onToggleLayer}
+          />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
