@@ -282,6 +282,7 @@ Ao concluir cada fase, adicionar nesta seção:
 ### Fase 2
 
 - branch: `agent/application-shell`;
+- commit: `4caf04f` (`feat: add configurable application shell`);
 - configuração de produto validada por Zod e injetada por provider;
 - branding dinâmico por CSS variables, sem alteração dos componentes do shell;
 - Header, Sidebar recolhível, MapViewport vazio, Toolbar, StatusBar e drawer móvel implementados;
