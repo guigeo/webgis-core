@@ -22,14 +22,14 @@ export const appConfig = appConfigSchema.parse({
       [-45.92, -23.05],
     ],
     basemap: {
-      id: 'openstreetmap-standard',
-      name: 'OpenStreetMap Standard',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      id: 'carto-positron',
+      name: 'CARTO Positron',
+      tiles: ['https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
       tileSize: 256,
-      maxZoom: 19,
+      maxZoom: 20,
       attribution:
-        '<a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>',
-      termsUrl: 'https://operations.osmfoundation.org/policies/tiles/',
+        '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>, © <a href="https://carto.com/attribution/" target="_blank">CARTO</a>',
+      termsUrl: 'https://carto.com/basemaps/',
     },
   },
   ui: {

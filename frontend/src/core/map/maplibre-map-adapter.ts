@@ -2,10 +2,13 @@ import {
   Map as MapLibreMap,
   NavigationControl,
   ScaleControl,
+  setWorkerUrl,
+  type ErrorEvent as MapLibreErrorEvent,
   type LngLatBoundsLike,
   type MapMouseEvent,
   type StyleSpecification,
 } from 'maplibre-gl'
+import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
 import type {
   MapAdapter,
@@ -16,6 +19,8 @@ import type {
 
 const BASEMAP_SOURCE_ID = 'core-basemap-source'
 const BASEMAP_LAYER_ID = 'core-basemap-layer'
+
+setWorkerUrl(mapLibreWorkerUrl)
 
 function createBasemapStyle(settings: MapSettings): StyleSpecification {
   return {
@@ -44,6 +49,8 @@ export class MapLibreMapAdapter implements MapAdapter {
   private events: MapAdapterEvents | null = null
   private fullscreenContainer: HTMLElement | null = null
   private pointer: MapViewStatePointer | null = null
+  private loadTimeout: ReturnType<typeof setTimeout> | null = null
+  private ready = false
 
   constructor(private readonly settings: MapSettings) {}
 
@@ -60,6 +67,14 @@ export class MapLibreMapAdapter implements MapAdapter {
     this.fullscreenContainer = fullscreenContainer
 
     try {
+      const { width, height } = container.getBoundingClientRect()
+
+      if (width === 0 || height === 0) {
+        throw new Error(
+          `A área do mapa está sem dimensões (${Math.round(width)} × ${Math.round(height)} px)`,
+        )
+      }
+
       const map = new MapLibreMap({
         container,
         style: createBasemapStyle(this.settings),
@@ -80,10 +95,20 @@ export class MapLibreMapAdapter implements MapAdapter {
       )
 
       map.on('load', this.handleLoad)
+      map.on('error', this.handleError)
       map.on('move', this.handleMove)
       map.on('mousemove', this.handleMouseMove)
       map.on('mouseout', this.handleMouseOut)
       document.addEventListener('fullscreenchange', this.handleFullscreenChange)
+      this.loadTimeout = setTimeout(() => {
+        if (!this.ready) {
+          this.events?.onError(
+            new Error(
+              'O mapa não concluiu o primeiro carregamento em 15 segundos',
+            ),
+          )
+        }
+      }, 15_000)
     } catch (error) {
       this.map = null
       events.onError(
@@ -93,6 +118,7 @@ export class MapLibreMapAdapter implements MapAdapter {
   }
 
   destroy() {
+    this.clearLoadTimeout()
     document.removeEventListener(
       'fullscreenchange',
       this.handleFullscreenChange,
@@ -105,6 +131,7 @@ export class MapLibreMapAdapter implements MapAdapter {
     }
 
     this.map.off('load', this.handleLoad)
+    this.map.off('error', this.handleError)
     this.map.off('move', this.handleMove)
     this.map.off('mousemove', this.handleMouseMove)
     this.map.off('mouseout', this.handleMouseOut)
@@ -113,6 +140,7 @@ export class MapLibreMapAdapter implements MapAdapter {
     this.events = null
     this.fullscreenContainer = null
     this.pointer = null
+    this.ready = false
   }
 
   goHome() {
@@ -162,8 +190,17 @@ export class MapLibreMapAdapter implements MapAdapter {
   }
 
   private readonly handleLoad = () => {
+    this.ready = true
+    this.clearLoadTimeout()
     this.events?.onReady()
     this.emitView()
+  }
+
+  private readonly handleError = (event: MapLibreErrorEvent) => {
+    if (this.ready) return
+
+    this.clearLoadTimeout()
+    this.events?.onError(new Error(event.error.message))
   }
 
   private readonly handleMove = () => {
@@ -193,6 +230,13 @@ export class MapLibreMapAdapter implements MapAdapter {
   }
 
   private readonly handleFullscreenChange = () => this.map?.resize()
+
+  private clearLoadTimeout() {
+    if (this.loadTimeout === null) return
+
+    clearTimeout(this.loadTimeout)
+    this.loadTimeout = null
+  }
 }
 
 interface MapViewStatePointer {

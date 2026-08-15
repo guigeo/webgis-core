@@ -78,6 +78,7 @@ describe('App', () => {
 
     expect(screen.getByText('Geo Core')).toBeInTheDocument()
     expect(screen.getByLabelText('Área do mapa')).toBeInTheDocument()
+    expect(screen.getByTestId('map-container')).toHaveClass('h-full', 'w-full')
     expect(screen.getByLabelText('Navegação geográfica')).toBeInTheDocument()
     expect(
       screen.getByRole('toolbar', { name: 'Ferramentas do mapa' }),

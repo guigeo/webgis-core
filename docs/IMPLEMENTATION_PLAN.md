@@ -303,7 +303,7 @@ Ao concluir cada fase, adicionar nesta seção:
 - MapLibre GL JS 6.3 integrado por um adaptador único em `core/map`;
 - lifecycle, estado de carregamento/erro, vista inicial, enquadramento e fullscreen encapsulados pelo contrato do adaptador;
 - centro, zoom, limites, extensão inicial e basemap lidos da configuração validada;
-- OpenStreetMap Standard configurado com atribuição e termos de uso explícitos;
+- CARTO Positron configurado com atribuição a CARTO e OpenStreetMap e termos de uso explícitos;
 - decisão de uso do basemap registrada em `docs/adr/0003-basemap-padrao-de-demonstracao.md`;
 - zoom, escala métrica, coordenadas do cursor e escala aproximada exibidos na interface;
 - frontend no container: ESLint, Prettier, 11 testes Vitest e build de produção aprovados;

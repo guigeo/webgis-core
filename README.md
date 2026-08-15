@@ -90,7 +90,7 @@ Configuração inválida interrompe a inicialização com erro explícito. Segre
 
 ### Basemap padrão
 
-O basemap OpenStreetMap Standard está configurado para desenvolvimento, demonstração e tráfego interativo modesto. Ele possui atribuição visível e não deve ser tratado como infraestrutura garantida para produtos comerciais: não há SLA, prefetch e uso offline são proibidos e o serviço pode bloquear uso inadequado.
+O basemap CARTO Positron está configurado para desenvolvimento e demonstração, com atribuição visível a CARTO e OpenStreetMap. Ele não deve ser tratado como infraestrutura de produção garantida: aplicações derivadas precisam revisar licenciamento, capacidade e termos compatíveis com o tráfego esperado.
 
 Antes de entregar uma aplicação derivada em produção, avalie o volume previsto e configure um provedor compatível ou tiles próprios. A URL, a atribuição e os termos ficam centralizados em `map.basemap`; não os espalhe pelos componentes.
 

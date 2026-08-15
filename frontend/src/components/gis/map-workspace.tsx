@@ -30,7 +30,11 @@ export function MapWorkspace({
         className="map-canvas relative min-h-0 flex-1 overflow-hidden"
         aria-label="Área do mapa"
       >
-        <div ref={map.containerRef} className="absolute inset-0" />
+        <div
+          ref={map.containerRef}
+          className="absolute inset-0 h-full w-full"
+          data-testid="map-container"
+        />
 
         <div className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-2 rounded-lg border border-white/80 bg-white/90 px-3 py-2 text-xs text-slate-600 shadow-sm backdrop-blur">
           <MapIcon
