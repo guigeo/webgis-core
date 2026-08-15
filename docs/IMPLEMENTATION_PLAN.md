@@ -1,7 +1,7 @@
 # Plano de Implementação — Geo Core V1
 
-**Status geral:** Fase 2 em revisão
-**Próximo gate:** aprovação do Application Shell configurável
+**Status geral:** Fase 3 em revisão
+**Próximo gate:** aprovação visual e funcional do Map Core
 **Última atualização:** 2026-08-15
 
 ## 1. Forma de trabalho
@@ -26,8 +26,8 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 | --------------------------------- | ------------ | -------------------------------------------------------- |
 | 0 — Especificação e arquitetura   | Concluída    | baseline documental aprovada                             |
 | 1 — Bootstrap executável          | Concluída    | ambiente integrado sobe por Docker Compose               |
-| 2 — Application Shell             | Em revisão   | branding e shell controlados por configuração            |
-| 3 — Map Core                      | Não iniciada | mapa funcional com acesso organizado à instância         |
+| 2 — Application Shell             | Concluída    | branding e shell controlados por configuração            |
+| 3 — Map Core                      | Em revisão   | mapa funcional com acesso organizado à instância         |
 | 4 — Primeira camada ponta a ponta | Não iniciada | PostGIS → API → mapa → seleção → popup                   |
 | 5 — Sistema genérico de camadas   | Não iniciada | segunda camada não altera componentes genéricos          |
 | 6 — Prova de derivação            | Não iniciada | módulo pode ser adicionado e removido sem alterar o Core |
@@ -126,12 +126,12 @@ Duas configurações de teste deverão mudar branding e elementos habilitados se
 
 ### Escopo previsto
 
-- [ ] integrar MapLibre;
-- [ ] implementar lifecycle controlado;
-- [ ] ler center, zoom, min/max zoom e extent da configuração;
-- [ ] adicionar um basemap com atribuição;
-- [ ] implementar home, fullscreen, escala e coordenadas;
-- [ ] testar contratos do adaptador sem acoplar testes a detalhes internos.
+- [x] integrar MapLibre;
+- [x] implementar lifecycle controlado;
+- [x] ler center, zoom, min/max zoom e extent da configuração;
+- [x] adicionar um basemap com atribuição;
+- [x] implementar home, fullscreen, escala e coordenadas;
+- [x] testar contratos do adaptador sem acoplar testes a detalhes internos.
 
 ### Fora de escopo
 
@@ -295,3 +295,21 @@ Ao concluir cada fase, adicionar nesta seção:
 - `GET /`: HTTP 200 via Nginx e `GET /api/health`: API/PostGIS em estado `ok`;
 - inspeção visual automatizada indisponível porque não havia navegador conectado à sessão; shell mantido em `http://localhost:8080` para revisão;
 - MapLibre, camadas, ferramentas GIS reais, Dark Mode e busca não foram antecipados.
+
+### Fase 3
+
+- branch: `agent/map-core`;
+- commit: `080dc5f` (`feat: add configurable map core`);
+- MapLibre GL JS 6.3 integrado por um adaptador único em `core/map`;
+- lifecycle, estado de carregamento/erro, vista inicial, enquadramento e fullscreen encapsulados pelo contrato do adaptador;
+- centro, zoom, limites, extensão inicial e basemap lidos da configuração validada;
+- OpenStreetMap Standard configurado com atribuição e termos de uso explícitos;
+- decisão de uso do basemap registrada em `docs/adr/0003-basemap-padrao-de-demonstracao.md`;
+- zoom, escala métrica, coordenadas do cursor e escala aproximada exibidos na interface;
+- frontend no container: ESLint, Prettier, 11 testes Vitest e build de produção aprovados;
+- database, backend, frontend e Nginx saudáveis;
+- `GET /`: HTTP 200 e `GET /api/health`: API/PostGIS em estado `ok`;
+- endpoint do tile respondeu HTTP 200 quando solicitado com User-Agent e Referer de aplicação web;
+- inspeção visual automatizada indisponível porque não havia navegador conectado à sessão; revisão manual disponível em `http://localhost:8080`;
+- limitação conhecida: o build concentra MapLibre e aplicação em um bundle JS de aproximadamente 1,36 MB minificado; code splitting será avaliado quando houver rotas ou módulos que permitam separação útil;
+- dados PostGIS, camadas de negócio, seleção, legenda e medição não foram antecipados.
