@@ -266,7 +266,7 @@ Ao concluir cada fase, adicionar nesta seção:
 
 ### Fase 1
 
-- commit planejado: `chore: bootstrap integrated development environment`;
+- commit: `f7fccce` (`chore: bootstrap integrated development environment`);
 - `docker compose config --quiet`: aprovado;
 - `docker compose build`: frontend e backend construídos;
 - `docker compose up -d`: database, backend, frontend e Nginx saudáveis;
