@@ -2,7 +2,7 @@
 
 Fundação WebGIS open source para derivar aplicações geográficas por configuração e composição de módulos.
 
-O projeto está em implementação incremental. A Fase 7 adiciona ferramentas genéricas e configuráveis de medição de distância e área sobre o mapa, preservando a composição modular comprovada na fase anterior.
+O projeto está em implementação incremental. A Fase 8 iniciou a consolidação de qualidade e entrega com CI automatizada, preservando as ferramentas genéricas e configuráveis de medição entregues na fase anterior.
 
 ## Requisitos
 
@@ -59,6 +59,7 @@ Frontend, dentro do container:
 ```bash
 docker compose exec frontend npm run lint
 docker compose exec frontend npm run format:check
+docker compose exec frontend npm run typecheck
 docker compose exec frontend npm test
 docker compose exec frontend npm run build
 ```
@@ -70,6 +71,8 @@ docker compose exec backend ruff check .
 docker compose exec backend ruff format --check .
 docker compose exec backend pytest
 ```
+
+O workflow `.github/workflows/ci.yml` executa essas verificações em todo pull request e em cada atualização da branch `main`, usando Node.js 22 e Python 3.13. O frontend e o backend rodam em jobs independentes para que falhas sejam identificadas com clareza.
 
 ## Estrutura atual
 

@@ -1,7 +1,7 @@
 # Plano de Implementação — Geo Core V1
 
-**Status geral:** Fase 7 concluída no recorte priorizado
-**Próximo gate:** definir o escopo da Fase 8 — qualidade e entrega
+**Status geral:** Fase 8 em andamento
+**Gate atual:** consolidar qualidade automatizada e preparar a entrega
 **Última atualização:** 2026-08-16
 
 ## 1. Forma de trabalho
@@ -231,7 +231,7 @@ Cada capacidade implementada deverá possuir feature flag ou configuração quan
 ### Escopo previsto
 
 - [ ] consolidar testes unitários, integração e E2E;
-- [ ] configurar CI para lint, types, testes e build;
+- [x] configurar CI para lint, types, testes e build;
 - [ ] estruturar logs, request ID e erros públicos;
 - [ ] aplicar usuário de banco com privilégios mínimos;
 - [ ] configurar limites, rate limiting e headers de segurança;
@@ -378,3 +378,16 @@ Ao concluir cada fase, adicionar nesta seção:
 - backend permanece sem alterações; Ruff e 24 testes Pytest continuam aprovados;
 - revisão funcional das medições aprovada em 2026-08-16;
 - fora deste recorte: segundo basemap, tema, busca e demais refinamentos continuam pendentes para priorização.
+
+### Fase 8 — recorte inicial de CI
+
+- branch: `agent/quality-ci`;
+- workflow `.github/workflows/ci.yml` acionado em pull requests e atualizações da `main`;
+- frontend e backend executados em jobs independentes, com cancelamento de execuções obsoletas;
+- frontend em Node.js 22: Prettier, ESLint, TypeScript, Vitest e build de produção;
+- backend em Python 3.13: Ruff lint, Ruff format e Pytest;
+- permissões do workflow restritas a leitura do conteúdo do repositório;
+- validação local e nos containers aprovada: 44 testes Vitest, 24 testes Pytest, lint, formatação, TypeScript e build;
+- database, backend, frontend e Nginx saudáveis; aplicação HTTP 200 e API/PostGIS em estado `ok`;
+- limitação conhecida preservada: o bundle principal ainda gera o aviso de tamanho acima de 500 kB;
+- próximos itens da fase: logs e request ID, privilégios mínimos, limites e headers, documentação de produção, backup/restauração e deploy na VPS.
