@@ -20,7 +20,8 @@ wait_for_gateway() {
 require_header() {
     header_name="$1"
     expected_value="$2"
-    if ! grep -Eiq "^${header_name}: ${expected_value}\r?$" "$temporary_directory/headers"; then
+    if ! tr -d '\r' <"$temporary_directory/headers" \
+        | grep -Eiq "^${header_name}: ${expected_value}$"; then
         echo "Missing or invalid ${header_name} header" >&2
         return 1
     fi
