@@ -55,6 +55,25 @@ jobs:
     name: Backend
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      database:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: geo_core
+          POSTGRES_USER: geo_core
+          POSTGRES_PASSWORD: geo_core_ci_admin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U geo_core -d geo_core"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://geo_core:geo_core_ci_admin@localhost:5432/geo_core
+      DATABASE_RUNTIME_USER: geo_core_app
+      DATABASE_RUNTIME_PASSWORD: geo_core_ci_runtime
+      TEST_DATABASE_URL: postgresql+psycopg://geo_core_app:geo_core_ci_runtime@localhost:5432/geo_core
     defaults:
       run:
         working-directory: backend
@@ -78,6 +97,12 @@ jobs:
 
       - name: Check formatting
         run: ruff format --check .
+
+      - name: Prepare PostGIS permissions
+        run: |
+          python -m app.core.database_access ensure-role
+          alembic upgrade head
+          python -m app.core.database_access grant-access
 
       - name: Run tests
         run: pytest

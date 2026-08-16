@@ -27,13 +27,13 @@ services:
       APP_ENV: ${APP_ENV:-development}
       APP_NAME: ${APP_NAME:-Geo Core API}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-geo_core}:${POSTGRES_PASSWORD:-geo_core_local}@database:5432/${POSTGRES_DB:-geo_core}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_APP_USER:-geo_core_app}:${POSTGRES_APP_PASSWORD:-geo_core_app_local}@database:5432/${POSTGRES_DB:-geo_core}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ./backend:/app
     depends_on:
-      database:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
@@ -46,6 +46,27 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  migrate:
+    build:
+      context: ./backend
+    command:
+      - sh
+      - -c
+      - >-
+        python -m app.core.database_access ensure-role &&
+        alembic upgrade head &&
+        python -m app.core.database_access grant-access
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-geo_core}:${POSTGRES_PASSWORD:-geo_core_local}@database:5432/${POSTGRES_DB:-geo_core}
+      DATABASE_RUNTIME_USER: ${POSTGRES_APP_USER:-geo_core_app}
+      DATABASE_RUNTIME_PASSWORD: ${POSTGRES_APP_PASSWORD:-geo_core_app_local}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
 
   frontend:
     build:
