@@ -7,13 +7,26 @@ const layer: LayerDefinition = {
   id: 'ibge-rmsp-municipalities',
   name: 'Municípios da RMSP',
   description: 'Limites municipais',
+  groupName: 'Referência territorial',
+  sortOrder: 10,
   geometryType: 'MultiPolygon',
   fields: [
-    { name: 'name', label: 'Município', type: 'string' },
-    { name: 'ibge_code', label: 'Código IBGE', type: 'string' },
-    { name: 'state_code', label: 'UF', type: 'string' },
+    {
+      name: 'name',
+      label: 'Município',
+      type: 'string',
+      popup: 'title',
+    },
+    {
+      name: 'ibge_code',
+      label: 'Código IBGE',
+      type: 'string',
+      popup: 'detail',
+    },
+    { name: 'state_code', label: 'UF', type: 'string', popup: 'detail' },
   ],
   style: {
+    kind: 'fill',
     fillColor: '#175CD3',
     fillOpacity: 0.24,
     lineColor: '#175CD3',
@@ -27,7 +40,13 @@ const layer: LayerDefinition = {
   licenseName: 'Dados abertos do IBGE',
   licenseUrl: 'https://www.ibge.gov.br/',
   defaultVisible: true,
+  defaultOpacity: 1,
   featureLimit: 50,
+  metadata: {
+    summary: 'Limites municipais',
+    updatedAt: '2026-08-15',
+    featureCount: 39,
+  },
 }
 
 describe('MapLibre layer popup', () => {
@@ -53,5 +72,31 @@ describe('MapLibre layer popup', () => {
 
     expect(popup.querySelector('img')).toBeNull()
     expect(popup.textContent).toContain('<img src=x onerror=alert(1)>')
+  })
+
+  it('não publica campos marcados como ocultos no popup', () => {
+    const popup = createFeaturePopupContent(
+      {
+        ...layer,
+        fields: [
+          ...layer.fields,
+          {
+            name: 'internal_code',
+            label: 'Código interno',
+            type: 'string',
+            popup: 'hidden',
+          },
+        ],
+      },
+      {
+        name: 'São Paulo',
+        ibge_code: '3550308',
+        state_code: 'SP',
+        internal_code: 'não exibir',
+      },
+    )
+
+    expect(popup.textContent).not.toContain('Código interno')
+    expect(popup.textContent).not.toContain('não exibir')
   })
 })

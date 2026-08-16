@@ -39,3 +39,16 @@ Medição feita no ambiente integrado em 2026-08-15, consultando toda a extensã
 O limite máximo da camada foi definido em 50 feições. Ele comporta as 39 feições do snapshot com 28% de margem e mantém a resposta projetada abaixo de aproximadamente 286 KB caso a complexidade média das geometrias permaneça semelhante. O limite é uma política do catálogo e não pode ser aumentado pelo cliente.
 
 Essa medição é específica da camada de referência. Camadas derivadas precisam medir seu próprio volume e migrar para vector tiles quando a densidade ou a complexidade não couberem nesse orçamento.
+
+## Pontos municipais da Região Metropolitana de São Paulo
+
+A segunda camada é derivada no PostGIS a partir do mesmo snapshot do IBGE. Para cada município, a migration calcula `ST_PointOnSurface(geometry)`, garantindo um ponto situado no interior do polígono.
+
+- tabela: `reference.rmsp_municipality_points`;
+- geometria: `Point`, SRID 4326;
+- quantidade persistida: 39 feições;
+- identidade: mesmo código IBGE da camada de municípios;
+- índice espacial: GiST;
+- finalidade: provar uma segunda geometria e simbologia sem adicionar comportamento específico ao Core.
+
+Esses pontos são representativos e derivados dos polígonos; não devem ser interpretados como coordenadas oficiais das sedes municipais.

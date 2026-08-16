@@ -1,9 +1,13 @@
 import { AlertTriangle, LoaderCircle, Map as MapIcon } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import { useAppConfig } from '../../config/context'
-import type { LayerDefinition } from '../../core/layers/contracts'
-import type { MapAdapterFactory } from '../../core/map/contracts'
+import type {
+  LayerDefinition,
+  LayerFeatureCollection,
+} from '../../core/layers/contracts'
+import { useLayerStore } from '../../core/layers/store'
+import type { MapAdapterFactory, MapBounds } from '../../core/map/contracts'
 import { createMapLibreMapAdapter } from '../../core/map/maplibre-map-adapter'
 import { useMapCore } from '../../core/map/use-map-core'
 import { useLayerFeaturesQuery } from '../../services/layers'
@@ -11,38 +15,128 @@ import { StatusBar } from '../shell/status-bar'
 import { Toolbar } from '../shell/toolbar'
 import type { ServiceStatus } from '../shell/types'
 
+interface LayerControllerProps {
+  bounds: MapBounds | null
+  clearLayer: (layerId: string) => void
+  layer: LayerDefinition
+  mapReady: boolean
+  orderedVisibleIds: string[]
+  setLayerData: (
+    layer: LayerDefinition,
+    features: LayerFeatureCollection,
+    opacity: number,
+  ) => void
+  setLayerOpacity: (layerId: string, opacity: number) => void
+  setLayerOrder: (layerIds: string[]) => void
+}
+
+function LayerController({
+  bounds,
+  clearLayer,
+  layer,
+  mapReady,
+  orderedVisibleIds,
+  setLayerData,
+  setLayerOpacity,
+  setLayerOrder,
+}: LayerControllerProps) {
+  const runtime = useLayerStore((state) => state.runtime[layer.id])
+  const setLoadState = useLayerStore((state) => state.setLoadState)
+  const visible = runtime?.visible ?? false
+  const opacity = runtime?.opacity ?? layer.defaultOpacity
+  const features = useLayerFeaturesQuery(layer, bounds, mapReady && visible)
+
+  useEffect(() => {
+    if (!visible) {
+      clearLayer(layer.id)
+      setLoadState(layer.id, 'idle')
+      return
+    }
+    if (features.isError) {
+      setLoadState(layer.id, 'error', features.error.message)
+      return
+    }
+    if (features.isFetching && !features.data) {
+      setLoadState(layer.id, 'loading')
+      return
+    }
+    if (features.data && mapReady) {
+      setLayerData(layer, features.data, opacity)
+      setLayerOrder(orderedVisibleIds)
+      setLoadState(layer.id, 'ready')
+    }
+  }, [
+    clearLayer,
+    features.data,
+    features.error,
+    features.isError,
+    features.isFetching,
+    layer,
+    mapReady,
+    opacity,
+    orderedVisibleIds,
+    setLayerData,
+    setLayerOrder,
+    setLoadState,
+    visible,
+  ])
+
+  useEffect(() => {
+    if (visible) setLayerOpacity(layer.id, opacity)
+  }, [layer.id, opacity, setLayerOpacity, visible])
+
+  useEffect(
+    () => () => {
+      clearLayer(layer.id)
+    },
+    [clearLayer, layer.id],
+  )
+
+  return null
+}
+
 interface MapWorkspaceProps {
-  activeLayer?: LayerDefinition
+  layers: LayerDefinition[]
   serviceStatus: ServiceStatus
   createAdapter?: MapAdapterFactory
 }
 
 export function MapWorkspace({
-  activeLayer,
+  layers,
   serviceStatus,
   createAdapter = createMapLibreMapAdapter,
 }: MapWorkspaceProps) {
   const config = useAppConfig()
-  const map = useMapCore(config.map, createAdapter)
-  const { clearLayer, setLayerData } = map
-  const layerFeatures = useLayerFeaturesQuery(
-    activeLayer,
-    map.viewportBounds,
-    map.loadState === 'ready',
+  const order = useLayerStore((state) => state.order)
+  const runtime = useLayerStore((state) => state.runtime)
+  const setSelection = useLayerStore((state) => state.setSelection)
+  const map = useMapCore(config.map, createAdapter, setSelection)
+  const { setLayerOrder } = map
+  const orderedLayers = useMemo(
+    () =>
+      order
+        .map((layerId) => layers.find((layer) => layer.id === layerId))
+        .filter((layer): layer is LayerDefinition => Boolean(layer)),
+    [layers, order],
   )
+  const visibleOrderSignature = order
+    .filter((layerId) => runtime[layerId]?.visible)
+    .join('|')
+  const orderedVisibleIds = useMemo(
+    () => (visibleOrderSignature ? visibleOrderSignature.split('|') : []),
+    [visibleOrderSignature],
+  )
+  const visibleStates = orderedVisibleIds.map(
+    (layerId) => runtime[layerId]?.loadState,
+  )
+  const layersLoading = visibleStates.some((state) => state === 'loading')
+  const layersWithError = visibleStates.filter(
+    (state) => state === 'error',
+  ).length
 
   useEffect(() => {
-    if (activeLayer && layerFeatures.data && map.loadState === 'ready') {
-      setLayerData(activeLayer, layerFeatures.data)
-    }
-  }, [activeLayer, layerFeatures.data, map.loadState, setLayerData])
-
-  useEffect(() => {
-    const layerId = activeLayer?.id
-    return () => {
-      if (layerId) clearLayer(layerId)
-    }
-  }, [activeLayer?.id, clearLayer])
+    if (map.loadState === 'ready') setLayerOrder(orderedVisibleIds)
+  }, [map.loadState, orderedVisibleIds, setLayerOrder])
 
   return (
     <div
@@ -50,6 +144,20 @@ export function MapWorkspace({
       data-map-workspace
       className="relative flex min-h-0 flex-1 flex-col bg-slate-100"
     >
+      {orderedLayers.map((layer) => (
+        <LayerController
+          key={layer.id}
+          bounds={map.viewportBounds}
+          clearLayer={map.clearLayer}
+          layer={layer}
+          mapReady={map.loadState === 'ready'}
+          orderedVisibleIds={orderedVisibleIds}
+          setLayerData={map.setLayerData}
+          setLayerOpacity={map.setLayerOpacity}
+          setLayerOrder={map.setLayerOrder}
+        />
+      ))}
+
       <main
         className="map-canvas relative min-h-0 flex-1 overflow-hidden"
         aria-label="Área do mapa"
@@ -70,17 +178,17 @@ export function MapWorkspace({
           {config.map.basemap.name}
         </div>
 
-        {activeLayer && map.loadState === 'ready' && (
+        {map.loadState === 'ready' && orderedVisibleIds.length > 0 && (
           <div
             className="pointer-events-none absolute right-14 top-4 z-10 flex items-center gap-2 rounded-lg border border-white/80 bg-white/90 px-3 py-2 text-xs text-slate-600 shadow-sm backdrop-blur"
-            role={layerFeatures.isError ? 'alert' : 'status'}
+            role={layersWithError ? 'alert' : 'status'}
           >
-            {layerFeatures.isFetching ? (
+            {layersLoading ? (
               <LoaderCircle
                 aria-hidden="true"
                 className="size-3.5 animate-spin text-[var(--color-brand)]"
               />
-            ) : layerFeatures.isError ? (
+            ) : layersWithError ? (
               <AlertTriangle
                 aria-hidden="true"
                 className="size-3.5 text-amber-600"
@@ -91,11 +199,11 @@ export function MapWorkspace({
                 aria-hidden="true"
               />
             )}
-            {layerFeatures.isFetching
-              ? 'Atualizando camada'
-              : layerFeatures.isError
-                ? 'Camada indisponível'
-                : `${layerFeatures.data?.metadata.returned ?? 0} feições no mapa`}
+            {layersLoading
+              ? 'Atualizando camadas'
+              : layersWithError
+                ? `${layersWithError} camada indisponível`
+                : `${orderedVisibleIds.length} camadas visíveis`}
           </div>
         )}
 

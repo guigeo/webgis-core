@@ -1,3 +1,9 @@
+import type {
+  LayerDefinition,
+  LayerFeatureCollection,
+  LayerSelection,
+} from '../layers/contracts'
+
 export type MapCoordinate = readonly [longitude: number, latitude: number]
 
 export type MapBounds = readonly [
@@ -50,13 +56,14 @@ export interface MapAdapter {
   goHome(): void
   fitHomeBounds(): void
   toggleFullscreen(): Promise<void>
-  setLayerData(layer: LayerDefinition, features: LayerFeatureCollection): void
+  setLayerData(
+    layer: LayerDefinition,
+    features: LayerFeatureCollection,
+    opacity: number,
+  ): void
   clearLayer(layerId: string): void
+  setLayerOpacity(layerId: string, opacity: number): void
+  setLayerOrder(layerIds: string[]): void
 }
 
 export type MapAdapterFactory = (settings: MapSettings) => MapAdapter
-import type {
-  LayerDefinition,
-  LayerFeatureCollection,
-  LayerSelection,
-} from '../layers/contracts'

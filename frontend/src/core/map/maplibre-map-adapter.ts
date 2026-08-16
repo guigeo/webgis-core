@@ -57,10 +57,10 @@ function createBasemapStyle(settings: MapSettings): StyleSpecification {
 function layerIds(layerId: string) {
   return {
     source: `core-layer-source-${layerId}`,
-    fill: `core-layer-fill-${layerId}`,
-    line: `core-layer-line-${layerId}`,
-    selectedFill: `core-layer-selected-fill-${layerId}`,
-    selectedLine: `core-layer-selected-line-${layerId}`,
+    main: `core-layer-main-${layerId}`,
+    outline: `core-layer-outline-${layerId}`,
+    selected: `core-layer-selected-${layerId}`,
+    selectedOutline: `core-layer-selected-outline-${layerId}`,
   }
 }
 
@@ -76,17 +76,19 @@ export function createFeaturePopupContent(
   eyebrow.textContent = layer.name
   content.append(eyebrow)
 
-  const titleField = layer.fields[0]
+  const titleField = layer.fields.find((field) => field.popup === 'title')
   const title = document.createElement('h2')
   title.className = 'core-feature-popup__title'
   title.textContent = String(
-    properties[titleField?.name] ?? 'Feição selecionada',
+    (titleField ? properties[titleField.name] : null) ?? 'Feição selecionada',
   )
   content.append(title)
 
   const details = document.createElement('dl')
   details.className = 'core-feature-popup__details'
-  for (const field of layer.fields.slice(1)) {
+  for (const field of layer.fields.filter(
+    (candidate) => candidate.popup === 'detail',
+  )) {
     const row = document.createElement('div')
     const label = document.createElement('dt')
     const value = document.createElement('dd')
@@ -101,9 +103,13 @@ export function createFeaturePopupContent(
 
 interface LayerRegistration {
   click: (event: MapLayerMouseEvent) => void
+  definition: LayerDefinition
   enter: () => void
+  interactiveLayerId: string
   leave: () => void
   ids: ReturnType<typeof layerIds>
+  renderLayerIds: string[]
+  selectedLayerIds: string[]
 }
 
 export class MapLibreMapAdapter implements MapAdapter {
@@ -247,7 +253,11 @@ export class MapLibreMapAdapter implements MapAdapter {
     await container.requestFullscreen()
   }
 
-  setLayerData(layer: LayerDefinition, features: LayerFeatureCollection) {
+  setLayerData(
+    layer: LayerDefinition,
+    features: LayerFeatureCollection,
+    opacity: number,
+  ) {
     const map = this.map
     if (!map || !this.ready) return
 
@@ -263,6 +273,7 @@ export class MapLibreMapAdapter implements MapAdapter {
       ) {
         this.clearSelection()
       }
+      this.setLayerOpacity(layer.id, opacity)
       return
     }
 
@@ -271,44 +282,10 @@ export class MapLibreMapAdapter implements MapAdapter {
       data: features,
       attribution: layer.attribution,
     })
-    map.addLayer({
-      id: ids.fill,
-      type: 'fill',
-      source: ids.source,
-      paint: {
-        'fill-color': layer.style.fillColor,
-        'fill-opacity': layer.style.fillOpacity,
-      },
-    })
-    map.addLayer({
-      id: ids.line,
-      type: 'line',
-      source: ids.source,
-      paint: {
-        'line-color': layer.style.lineColor,
-        'line-width': layer.style.lineWidth,
-      },
-    })
-    map.addLayer({
-      id: ids.selectedFill,
-      type: 'fill',
-      source: ids.source,
-      filter: EMPTY_SELECTION_FILTER,
-      paint: {
-        'fill-color': layer.style.selectedFillColor,
-        'fill-opacity': 0.54,
-      },
-    })
-    map.addLayer({
-      id: ids.selectedLine,
-      type: 'line',
-      source: ids.source,
-      filter: EMPTY_SELECTION_FILTER,
-      paint: {
-        'line-color': layer.style.selectedLineColor,
-        'line-width': layer.style.selectedLineWidth,
-      },
-    })
+    const { renderLayerIds, selectedLayerIds } = this.addPresentationLayers(
+      layer,
+      ids,
+    )
 
     const click = (event: MapLayerMouseEvent) => {
       const feature = event.features?.[0]
@@ -323,11 +300,21 @@ export class MapLibreMapAdapter implements MapAdapter {
     const leave = () => {
       map.getCanvas().style.cursor = ''
     }
-    const registration = { click, enter, leave, ids }
-    map.on('click', ids.fill, click)
-    map.on('mouseenter', ids.fill, enter)
-    map.on('mouseleave', ids.fill, leave)
+    const registration = {
+      click,
+      definition: layer,
+      enter,
+      interactiveLayerId: ids.main,
+      leave,
+      ids,
+      renderLayerIds,
+      selectedLayerIds,
+    }
+    map.on('click', registration.interactiveLayerId, click)
+    map.on('mouseenter', registration.interactiveLayerId, enter)
+    map.on('mouseleave', registration.interactiveLayerId, leave)
     this.layers.set(layer.id, registration)
+    this.setLayerOpacity(layer.id, opacity)
   }
 
   clearLayer(layerId: string) {
@@ -337,18 +324,148 @@ export class MapLibreMapAdapter implements MapAdapter {
 
     if (this.selectedLayerId === layerId) this.clearSelection()
     this.removeLayerListeners(registration)
-    for (const id of [
-      registration.ids.selectedLine,
-      registration.ids.selectedFill,
-      registration.ids.line,
-      registration.ids.fill,
-    ]) {
+    for (const id of [...registration.renderLayerIds].reverse()) {
       if (map.getLayer(id)) map.removeLayer(id)
     }
     if (map.getSource(registration.ids.source)) {
       map.removeSource(registration.ids.source)
     }
     this.layers.delete(layerId)
+  }
+
+  setLayerOpacity(layerId: string, opacity: number) {
+    const map = this.map
+    const registration = this.layers.get(layerId)
+    if (!map || !registration) return
+
+    const normalizedOpacity = Math.min(1, Math.max(0, opacity))
+    const { definition, ids } = registration
+    if (definition.style.kind === 'fill') {
+      map.setPaintProperty(
+        ids.main,
+        'fill-opacity',
+        definition.style.fillOpacity * normalizedOpacity,
+      )
+      map.setPaintProperty(ids.outline, 'line-opacity', normalizedOpacity)
+      map.setPaintProperty(
+        ids.selected,
+        'fill-opacity',
+        0.54 * normalizedOpacity,
+      )
+      map.setPaintProperty(
+        ids.selectedOutline,
+        'line-opacity',
+        normalizedOpacity,
+      )
+      return
+    }
+
+    map.setPaintProperty(ids.main, 'circle-opacity', normalizedOpacity)
+    map.setPaintProperty(ids.main, 'circle-stroke-opacity', normalizedOpacity)
+    map.setPaintProperty(ids.selected, 'circle-opacity', normalizedOpacity)
+    map.setPaintProperty(
+      ids.selected,
+      'circle-stroke-opacity',
+      normalizedOpacity,
+    )
+  }
+
+  setLayerOrder(layerIds: string[]) {
+    const map = this.map
+    if (!map) return
+
+    for (const layerId of [...layerIds].reverse()) {
+      const registration = this.layers.get(layerId)
+      for (const renderLayerId of registration?.renderLayerIds ?? []) {
+        if (map.getLayer(renderLayerId)) map.moveLayer(renderLayerId)
+      }
+    }
+  }
+
+  private addPresentationLayers(
+    layer: LayerDefinition,
+    ids: ReturnType<typeof layerIds>,
+  ) {
+    const map = this.map
+    if (!map) return { renderLayerIds: [], selectedLayerIds: [] }
+
+    if (layer.style.kind === 'fill') {
+      map.addLayer({
+        id: ids.main,
+        type: 'fill',
+        source: ids.source,
+        paint: {
+          'fill-color': layer.style.fillColor,
+          'fill-opacity': layer.style.fillOpacity,
+        },
+      })
+      map.addLayer({
+        id: ids.outline,
+        type: 'line',
+        source: ids.source,
+        paint: {
+          'line-color': layer.style.lineColor,
+          'line-width': layer.style.lineWidth,
+        },
+      })
+      map.addLayer({
+        id: ids.selected,
+        type: 'fill',
+        source: ids.source,
+        filter: EMPTY_SELECTION_FILTER,
+        paint: {
+          'fill-color': layer.style.selectedFillColor,
+          'fill-opacity': 0.54,
+        },
+      })
+      map.addLayer({
+        id: ids.selectedOutline,
+        type: 'line',
+        source: ids.source,
+        filter: EMPTY_SELECTION_FILTER,
+        paint: {
+          'line-color': layer.style.selectedLineColor,
+          'line-width': layer.style.selectedLineWidth,
+        },
+      })
+      return {
+        renderLayerIds: [
+          ids.main,
+          ids.outline,
+          ids.selected,
+          ids.selectedOutline,
+        ],
+        selectedLayerIds: [ids.selected, ids.selectedOutline],
+      }
+    }
+
+    map.addLayer({
+      id: ids.main,
+      type: 'circle',
+      source: ids.source,
+      paint: {
+        'circle-color': layer.style.circleColor,
+        'circle-radius': layer.style.circleRadius,
+        'circle-stroke-color': layer.style.strokeColor,
+        'circle-stroke-width': layer.style.strokeWidth,
+      },
+    })
+    map.addLayer({
+      id: ids.selected,
+      type: 'circle',
+      source: ids.source,
+      filter: EMPTY_SELECTION_FILTER,
+      paint: {
+        'circle-color': layer.style.selectedColor,
+        'circle-radius': layer.style.selectedRadius,
+        'circle-stroke-color': layer.style.selectedStrokeColor,
+        'circle-stroke-width': layer.style.selectedStrokeWidth,
+      },
+    })
+    return {
+      renderLayerIds: [ids.main, ids.selected],
+      selectedLayerIds: [ids.selected],
+    }
   }
 
   private readonly emitView = () => {
@@ -422,10 +539,11 @@ export class MapLibreMapAdapter implements MapAdapter {
     if (!map) return
 
     this.clearSelection()
-    const ids = layerIds(layer.id)
     const selectionFilter: FilterSpecification = ['==', ['id'], featureId]
-    map.setFilter(ids.selectedFill, selectionFilter)
-    map.setFilter(ids.selectedLine, selectionFilter)
+    const registration = this.layers.get(layer.id)
+    for (const selectedLayerId of registration?.selectedLayerIds ?? []) {
+      map.setFilter(selectedLayerId, selectionFilter)
+    }
     this.selectedLayerId = layer.id
     this.selectedFeatureId = featureId
 
@@ -466,11 +584,10 @@ export class MapLibreMapAdapter implements MapAdapter {
     const registration = this.layers.get(layerId)
     if (!map || !registration) return
 
-    if (map.getLayer(registration.ids.selectedFill)) {
-      map.setFilter(registration.ids.selectedFill, EMPTY_SELECTION_FILTER)
-    }
-    if (map.getLayer(registration.ids.selectedLine)) {
-      map.setFilter(registration.ids.selectedLine, EMPTY_SELECTION_FILTER)
+    for (const selectedLayerId of registration.selectedLayerIds) {
+      if (map.getLayer(selectedLayerId)) {
+        map.setFilter(selectedLayerId, EMPTY_SELECTION_FILTER)
+      }
     }
   }
 
@@ -478,9 +595,9 @@ export class MapLibreMapAdapter implements MapAdapter {
     const map = this.map
     if (!map) return
 
-    map.off('click', registration.ids.fill, registration.click)
-    map.off('mouseenter', registration.ids.fill, registration.enter)
-    map.off('mouseleave', registration.ids.fill, registration.leave)
+    map.off('click', registration.interactiveLayerId, registration.click)
+    map.off('mouseenter', registration.interactiveLayerId, registration.enter)
+    map.off('mouseleave', registration.interactiveLayerId, registration.leave)
   }
 
   private emitViewport() {

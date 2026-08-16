@@ -12,6 +12,8 @@ class LayerSource:
     id: str
     name: str
     description: str
+    group_name: str
+    sort_order: int
     source_schema: str
     source_table: str
     geometry_column: str
@@ -24,7 +26,9 @@ class LayerSource:
     license_name: str
     license_url: str
     default_visible: bool
+    default_opacity: float
     feature_limit: int
+    metadata: dict[str, Any]
 
 
 class LayerRepository:
@@ -32,12 +36,14 @@ class LayerRepository:
         rows = connection.execute(
             text(
                 """
-                SELECT id, name, description, source_schema, source_table,
+                SELECT id, name, description, group_name, sort_order,
+                       source_schema, source_table,
                        geometry_column, geometry_type, feature_id_column,
                        fields, style, attribution, source_url, license_name,
-                       license_url, default_visible, feature_limit
+                       license_url, default_visible, default_opacity,
+                       feature_limit, metadata
                 FROM core.layers
-                ORDER BY name, id
+                ORDER BY group_name, sort_order, name, id
                 """
             )
         )
@@ -48,10 +54,12 @@ class LayerRepository:
             connection.execute(
                 text(
                     """
-                SELECT id, name, description, source_schema, source_table,
+                SELECT id, name, description, group_name, sort_order,
+                       source_schema, source_table,
                        geometry_column, geometry_type, feature_id_column,
                        fields, style, attribution, source_url, license_name,
-                       license_url, default_visible, feature_limit
+                       license_url, default_visible, default_opacity,
+                       feature_limit, metadata
                 FROM core.layers
                 WHERE id = :layer_id
                 """
