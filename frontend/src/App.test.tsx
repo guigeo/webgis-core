@@ -18,6 +18,9 @@ const mapAdapterSpies = vi.hoisted(() => ({
   clearLayer: vi.fn(),
   setLayerOpacity: vi.fn(),
   setLayerOrder: vi.fn(),
+  startMeasurement: vi.fn(),
+  resetMeasurement: vi.fn(),
+  clearMeasurement: vi.fn(),
 }))
 
 vi.mock('./core/map/maplibre-map-adapter', () => ({
@@ -55,6 +58,9 @@ vi.mock('./core/map/maplibre-map-adapter', () => ({
     clearLayer: mapAdapterSpies.clearLayer,
     setLayerOpacity: mapAdapterSpies.setLayerOpacity,
     setLayerOrder: mapAdapterSpies.setLayerOrder,
+    startMeasurement: mapAdapterSpies.startMeasurement,
+    resetMeasurement: mapAdapterSpies.resetMeasurement,
+    clearMeasurement: mapAdapterSpies.clearMeasurement,
   }),
 }))
 
@@ -201,6 +207,10 @@ describe('App', () => {
     expect(
       screen.getByRole('toolbar', { name: 'Ferramentas do mapa' }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Medir distância' }),
+    ).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Medir área' })).toBeEnabled()
     expect(await screen.findByText('Serviços operacionais')).toBeInTheDocument()
     expect(screen.getByText('PostGIS conectado')).toBeInTheDocument()
   })
@@ -262,6 +272,36 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fechar navegação' }))
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('oculta medições desabilitadas na configuração derivada', () => {
+    mockHealthyServices()
+    const derivedConfig = appConfigSchema.parse({
+      ...appConfig,
+      capabilities: {
+        ...appConfig.capabilities,
+        measureDistance: false,
+        measureArea: false,
+      },
+    })
+
+    renderApp(derivedConfig)
+
+    expect(
+      screen.queryByRole('button', { name: 'Medir distância' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Medir área' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('encaminha a ativação da medição ao adaptador do mapa', () => {
+    mockHealthyServices()
+    renderApp()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Medir distância' }))
+
+    expect(mapAdapterSpies.startMeasurement).toHaveBeenCalledWith('distance')
   })
 
   it('compõe duas camadas do catálogo sem lógica específica no shell', async () => {

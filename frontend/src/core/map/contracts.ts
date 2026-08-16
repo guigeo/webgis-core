@@ -38,9 +38,19 @@ export interface MapViewState {
 
 export type MapLoadState = 'loading' | 'ready' | 'error'
 
+export type MapMeasurementMode = 'distance' | 'area'
+
+export interface MapMeasurementState {
+  mode: MapMeasurementMode | null
+  coordinates: readonly MapCoordinate[]
+  value: number | null
+  formatted: string | null
+}
+
 export interface MapAdapterEvents {
   onError: (error: Error) => void
   onFeatureSelect: (selection: LayerSelection | null) => void
+  onMeasurementChange: (measurement: MapMeasurementState) => void
   onReady: () => void
   onViewChange: (view: MapViewState) => void
   onViewportChange: (bounds: MapBounds) => void
@@ -64,6 +74,9 @@ export interface MapAdapter {
   clearLayer(layerId: string): void
   setLayerOpacity(layerId: string, opacity: number): void
   setLayerOrder(layerIds: string[]): void
+  startMeasurement(mode: MapMeasurementMode): void
+  resetMeasurement(): void
+  clearMeasurement(): void
 }
 
 export type MapAdapterFactory = (settings: MapSettings) => MapAdapter

@@ -1,4 +1,5 @@
 import type { FilterSpecification } from '@maplibre/maplibre-gl-style-spec'
+import type { Feature, FeatureCollection, Geometry } from 'geojson'
 import {
   GeoJSONSource,
   Map as MapLibreMap,
@@ -23,12 +24,24 @@ import type {
   MapAdapter,
   MapAdapterEvents,
   MapAdapterFactory,
+  MapCoordinate,
+  MapMeasurementMode,
   MapSettings,
 } from './contracts'
+import { createMeasurementState } from './measurement'
 
 const BASEMAP_SOURCE_ID = 'core-basemap-source'
 const BASEMAP_LAYER_ID = 'core-basemap-layer'
 const EMPTY_SELECTION_FILTER: FilterSpecification = ['==', ['id'], '']
+const MEASUREMENT_SOURCE_ID = 'core-measurement-source'
+const MEASUREMENT_FILL_LAYER_ID = 'core-measurement-fill'
+const MEASUREMENT_LINE_LAYER_ID = 'core-measurement-line'
+const MEASUREMENT_POINT_LAYER_ID = 'core-measurement-points'
+const MEASUREMENT_LAYER_IDS = [
+  MEASUREMENT_FILL_LAYER_ID,
+  MEASUREMENT_LINE_LAYER_ID,
+  MEASUREMENT_POINT_LAYER_ID,
+]
 
 setWorkerUrl(mapLibreWorkerUrl)
 
@@ -62,6 +75,54 @@ function layerIds(layerId: string) {
     selected: `core-layer-selected-${layerId}`,
     selectedOutline: `core-layer-selected-outline-${layerId}`,
   }
+}
+
+export function createMeasurementFeatureCollection(
+  mode: MapMeasurementMode,
+  coordinates: readonly MapCoordinate[],
+): FeatureCollection {
+  const features: Feature<Geometry>[] = []
+  const mutableCoordinates = coordinates.map(([longitude, latitude]) => [
+    longitude,
+    latitude,
+  ])
+
+  if (mutableCoordinates.length) {
+    features.push({
+      type: 'Feature',
+      properties: { kind: 'vertices' },
+      geometry: { type: 'MultiPoint', coordinates: mutableCoordinates },
+    })
+  }
+
+  if (mode === 'distance' && mutableCoordinates.length >= 2) {
+    features.push({
+      type: 'Feature',
+      properties: { kind: 'distance' },
+      geometry: { type: 'LineString', coordinates: mutableCoordinates },
+    })
+  }
+
+  if (mode === 'area' && mutableCoordinates.length === 2) {
+    features.push({
+      type: 'Feature',
+      properties: { kind: 'area-preview' },
+      geometry: { type: 'LineString', coordinates: mutableCoordinates },
+    })
+  }
+
+  if (mode === 'area' && mutableCoordinates.length >= 3) {
+    features.push({
+      type: 'Feature',
+      properties: { kind: 'area' },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[...mutableCoordinates, [...mutableCoordinates[0]]]],
+      },
+    })
+  }
+
+  return { type: 'FeatureCollection', features }
 }
 
 export function createFeaturePopupContent(
@@ -121,6 +182,8 @@ export class MapLibreMapAdapter implements MapAdapter {
   private readonly layers = new Map<string, LayerRegistration>()
   private popup: Popup | null = null
   private selectedLayerId: string | null = null
+  private measurementMode: MapMeasurementMode | null = null
+  private measurementCoordinates: MapCoordinate[] = []
   private ready = false
 
   constructor(private readonly settings: MapSettings) {}
@@ -169,9 +232,11 @@ export class MapLibreMapAdapter implements MapAdapter {
       map.on('error', this.handleError)
       map.on('move', this.handleMove)
       map.on('moveend', this.handleMoveEnd)
+      map.on('click', this.handleMeasurementClick)
       map.on('mousemove', this.handleMouseMove)
       map.on('mouseout', this.handleMouseOut)
       document.addEventListener('fullscreenchange', this.handleFullscreenChange)
+      document.addEventListener('keydown', this.handleKeyDown)
       this.loadTimeout = setTimeout(() => {
         if (!this.ready) {
           this.events?.onError(
@@ -192,10 +257,12 @@ export class MapLibreMapAdapter implements MapAdapter {
   destroy() {
     this.clearLoadTimeout()
     this.clearSelection()
+    this.clearMeasurement()
     document.removeEventListener(
       'fullscreenchange',
       this.handleFullscreenChange,
     )
+    document.removeEventListener('keydown', this.handleKeyDown)
 
     if (!this.map) {
       this.events = null
@@ -207,6 +274,7 @@ export class MapLibreMapAdapter implements MapAdapter {
     this.map.off('error', this.handleError)
     this.map.off('move', this.handleMove)
     this.map.off('moveend', this.handleMoveEnd)
+    this.map.off('click', this.handleMeasurementClick)
     this.map.off('mousemove', this.handleMouseMove)
     this.map.off('mouseout', this.handleMouseOut)
     for (const registration of this.layers.values()) {
@@ -274,6 +342,7 @@ export class MapLibreMapAdapter implements MapAdapter {
         this.clearSelection()
       }
       this.setLayerOpacity(layer.id, opacity)
+      this.raiseMeasurementLayers()
       return
     }
 
@@ -288,6 +357,7 @@ export class MapLibreMapAdapter implements MapAdapter {
     )
 
     const click = (event: MapLayerMouseEvent) => {
+      if (this.measurementMode) return
       const feature = event.features?.[0]
       if (feature?.id === undefined) return
 
@@ -295,10 +365,10 @@ export class MapLibreMapAdapter implements MapAdapter {
       this.selectFeature(layer, featureId, feature.properties ?? {}, event)
     }
     const enter = () => {
-      map.getCanvas().style.cursor = 'pointer'
+      if (!this.measurementMode) map.getCanvas().style.cursor = 'pointer'
     }
     const leave = () => {
-      map.getCanvas().style.cursor = ''
+      map.getCanvas().style.cursor = this.measurementMode ? 'crosshair' : ''
     }
     const registration = {
       click,
@@ -315,6 +385,7 @@ export class MapLibreMapAdapter implements MapAdapter {
     map.on('mouseleave', registration.interactiveLayerId, leave)
     this.layers.set(layer.id, registration)
     this.setLayerOpacity(layer.id, opacity)
+    this.raiseMeasurementLayers()
   }
 
   clearLayer(layerId: string) {
@@ -380,6 +451,40 @@ export class MapLibreMapAdapter implements MapAdapter {
         if (map.getLayer(renderLayerId)) map.moveLayer(renderLayerId)
       }
     }
+    this.raiseMeasurementLayers()
+  }
+
+  startMeasurement(mode: MapMeasurementMode) {
+    if (!this.map || !this.ready) return
+
+    this.clearSelection()
+    this.measurementMode = mode
+    this.measurementCoordinates = []
+    this.map.getCanvas().style.cursor = 'crosshair'
+    this.ensureMeasurementPresentation()
+    this.refreshMeasurementPresentation()
+    this.emitMeasurement()
+  }
+
+  resetMeasurement() {
+    if (!this.measurementMode) return
+
+    this.measurementCoordinates = []
+    this.refreshMeasurementPresentation()
+    this.emitMeasurement()
+  }
+
+  clearMeasurement() {
+    const hadMeasurement = Boolean(
+      this.measurementMode || this.measurementCoordinates.length,
+    )
+    this.measurementMode = null
+    this.measurementCoordinates = []
+    if (this.map) {
+      this.map.getCanvas().style.cursor = ''
+      this.removeMeasurementPresentation()
+    }
+    if (hadMeasurement) this.emitMeasurement()
   }
 
   private addPresentationLayers(
@@ -512,6 +617,17 @@ export class MapLibreMapAdapter implements MapAdapter {
 
   private readonly handleMoveEnd = () => this.emitViewport()
 
+  private readonly handleMeasurementClick = (event: MapMouseEvent) => {
+    if (!this.measurementMode) return
+
+    this.measurementCoordinates = [
+      ...this.measurementCoordinates,
+      [event.lngLat.lng, event.lngLat.lat],
+    ]
+    this.refreshMeasurementPresentation()
+    this.emitMeasurement()
+  }
+
   private readonly handleMouseMove = (event: MapMouseEvent) => {
     this.pointer = {
       longitude: event.lngLat.lng,
@@ -526,6 +642,12 @@ export class MapLibreMapAdapter implements MapAdapter {
   }
 
   private readonly handleFullscreenChange = () => this.map?.resize()
+
+  private readonly handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && this.measurementMode) {
+      this.clearMeasurement()
+    }
+  }
 
   private selectedFeatureId: string | null = null
 
@@ -598,6 +720,88 @@ export class MapLibreMapAdapter implements MapAdapter {
     map.off('click', registration.interactiveLayerId, registration.click)
     map.off('mouseenter', registration.interactiveLayerId, registration.enter)
     map.off('mouseleave', registration.interactiveLayerId, registration.leave)
+  }
+
+  private ensureMeasurementPresentation() {
+    const map = this.map
+    if (!map || map.getSource(MEASUREMENT_SOURCE_ID)) return
+
+    map.addSource(MEASUREMENT_SOURCE_ID, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    })
+    map.addLayer({
+      id: MEASUREMENT_FILL_LAYER_ID,
+      type: 'fill',
+      source: MEASUREMENT_SOURCE_ID,
+      paint: {
+        'fill-color': '#7C3AED',
+        'fill-opacity': 0.2,
+      },
+    })
+    map.addLayer({
+      id: MEASUREMENT_LINE_LAYER_ID,
+      type: 'line',
+      source: MEASUREMENT_SOURCE_ID,
+      paint: {
+        'line-color': '#6D28D9',
+        'line-width': 3,
+        'line-dasharray': [2, 1.5],
+      },
+    })
+    map.addLayer({
+      id: MEASUREMENT_POINT_LAYER_ID,
+      type: 'circle',
+      source: MEASUREMENT_SOURCE_ID,
+      paint: {
+        'circle-color': '#7C3AED',
+        'circle-radius': 5,
+        'circle-stroke-color': '#FFFFFF',
+        'circle-stroke-width': 2,
+      },
+    })
+  }
+
+  private refreshMeasurementPresentation() {
+    const map = this.map
+    const mode = this.measurementMode
+    if (!map || !mode) return
+
+    this.ensureMeasurementPresentation()
+    const source = map.getSource(MEASUREMENT_SOURCE_ID)
+    if (source instanceof GeoJSONSource) {
+      source.setData(
+        createMeasurementFeatureCollection(mode, this.measurementCoordinates),
+      )
+    }
+    this.raiseMeasurementLayers()
+  }
+
+  private removeMeasurementPresentation() {
+    const map = this.map
+    if (!map) return
+
+    for (const layerId of [...MEASUREMENT_LAYER_IDS].reverse()) {
+      if (map.getLayer(layerId)) map.removeLayer(layerId)
+    }
+    if (map.getSource(MEASUREMENT_SOURCE_ID)) {
+      map.removeSource(MEASUREMENT_SOURCE_ID)
+    }
+  }
+
+  private raiseMeasurementLayers() {
+    const map = this.map
+    if (!map || !this.measurementMode) return
+
+    for (const layerId of MEASUREMENT_LAYER_IDS) {
+      if (map.getLayer(layerId)) map.moveLayer(layerId)
+    }
+  }
+
+  private emitMeasurement() {
+    this.events?.onMeasurementChange(
+      createMeasurementState(this.measurementMode, this.measurementCoordinates),
+    )
   }
 
   private emitViewport() {

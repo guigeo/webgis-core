@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import type { LayerDefinition } from '../layers/contracts'
-import { createFeaturePopupContent } from './maplibre-map-adapter'
+import {
+  createFeaturePopupContent,
+  createMeasurementFeatureCollection,
+} from './maplibre-map-adapter'
 
 const layer: LayerDefinition = {
   id: 'ibge-rmsp-municipalities',
@@ -98,5 +101,39 @@ describe('MapLibre layer popup', () => {
 
     expect(popup.textContent).not.toContain('Código interno')
     expect(popup.textContent).not.toContain('não exibir')
+  })
+})
+
+describe('MapLibre measurement GeoJSON', () => {
+  it('cria linha de distância e vértices', () => {
+    const collection = createMeasurementFeatureCollection('distance', [
+      [-46.6, -23.5],
+      [-46.5, -23.4],
+    ])
+
+    expect(collection.features.map(({ geometry }) => geometry.type)).toEqual([
+      'MultiPoint',
+      'LineString',
+    ])
+  })
+
+  it('fecha o anel da área sem alterar os vértices recebidos', () => {
+    const coordinates = [
+      [-46.6, -23.5],
+      [-46.5, -23.5],
+      [-46.5, -23.4],
+    ] as const
+    const collection = createMeasurementFeatureCollection('area', coordinates)
+    const polygon = collection.features.find(
+      ({ geometry }) => geometry.type === 'Polygon',
+    )
+
+    expect(polygon?.geometry).toMatchObject({
+      type: 'Polygon',
+      coordinates: [
+        [coordinates[0], coordinates[1], coordinates[2], coordinates[0]],
+      ],
+    })
+    expect(coordinates).toHaveLength(3)
   })
 })
