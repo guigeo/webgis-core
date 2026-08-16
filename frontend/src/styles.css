@@ -74,6 +74,73 @@ select {
   font-size: 10px;
 }
 
+.maplibregl-popup-content {
+  min-width: 13rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 0;
+  box-shadow: 0 18px 45px rgb(15 23 42 / 18%);
+}
+
+.maplibregl-popup-close-button {
+  right: 0.35rem;
+  top: 0.25rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+.maplibregl-popup-close-button:hover {
+  background: #f1f5f9;
+}
+
+.core-feature-popup {
+  padding: 1rem;
+}
+
+.core-feature-popup__eyebrow {
+  margin: 0;
+  color: var(--color-brand);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.core-feature-popup__title {
+  margin: 0.25rem 1.75rem 0.75rem 0;
+  color: #0f172a;
+  font-size: 0.95rem;
+  line-height: 1.25rem;
+}
+
+.core-feature-popup__details {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.core-feature-popup__details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.35rem;
+  font-size: 0.7rem;
+}
+
+.core-feature-popup__details dt {
+  color: #64748b;
+}
+
+.core-feature-popup__details dd {
+  margin: 0;
+  color: #334155;
+  font-weight: 600;
+}
+
 [data-map-workspace]:fullscreen {
   width: 100%;
   height: 100%;

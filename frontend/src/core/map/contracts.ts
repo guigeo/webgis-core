@@ -34,8 +34,10 @@ export type MapLoadState = 'loading' | 'ready' | 'error'
 
 export interface MapAdapterEvents {
   onError: (error: Error) => void
+  onFeatureSelect: (selection: LayerSelection | null) => void
   onReady: () => void
   onViewChange: (view: MapViewState) => void
+  onViewportChange: (bounds: MapBounds) => void
 }
 
 export interface MapAdapter {
@@ -48,6 +50,13 @@ export interface MapAdapter {
   goHome(): void
   fitHomeBounds(): void
   toggleFullscreen(): Promise<void>
+  setLayerData(layer: LayerDefinition, features: LayerFeatureCollection): void
+  clearLayer(layerId: string): void
 }
 
 export type MapAdapterFactory = (settings: MapSettings) => MapAdapter
+import type {
+  LayerDefinition,
+  LayerFeatureCollection,
+  LayerSelection,
+} from '../layers/contracts'

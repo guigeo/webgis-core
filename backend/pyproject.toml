@@ -29,6 +29,7 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 addopts = "-q --strict-markers"
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.ruff]
