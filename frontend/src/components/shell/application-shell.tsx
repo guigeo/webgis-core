@@ -1,8 +1,9 @@
 import type { CSSProperties } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useAppConfig } from '../../config/context'
 import { useLayerStore } from '../../core/layers/store'
+import { useWebGisModules } from '../../core/modules/context'
 import { useHealthQuery } from '../../services/health'
 import { useLayerCatalogQuery } from '../../services/layers'
 import { MapWorkspace } from '../gis/map-workspace'
@@ -13,15 +14,20 @@ import type { ServiceStatus } from './types'
 
 export function ApplicationShell() {
   const config = useAppConfig()
+  const moduleRegistry = useWebGisModules()
   const health = useHealthQuery()
   const layerCatalog = useLayerCatalogQuery()
   const initializeLayers = useLayerStore((state) => state.initializeLayers)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
+  const layers = useMemo(
+    () => moduleRegistry.selectLayers(layerCatalog.data ?? []),
+    [layerCatalog.data, moduleRegistry],
+  )
 
   useEffect(() => {
-    if (layerCatalog.data) initializeLayers(layerCatalog.data)
-  }, [initializeLayers, layerCatalog.data])
+    if (layerCatalog.data) initializeLayers(layers)
+  }, [initializeLayers, layerCatalog.data, layers])
 
   const serviceStatus: ServiceStatus = health.isPending
     ? 'loading'
@@ -56,7 +62,7 @@ export function ApplicationShell() {
             <Sidebar
               collapsed={sidebarCollapsed}
               layerCatalogStatus={layerCatalogStatus}
-              layers={layerCatalog.data ?? []}
+              layers={layers}
               serviceStatus={serviceStatus}
               onToggleCollapse={() =>
                 setSidebarCollapsed((current) => !current)
@@ -65,17 +71,14 @@ export function ApplicationShell() {
           </div>
         )}
 
-        <MapWorkspace
-          layers={layerCatalog.data ?? []}
-          serviceStatus={serviceStatus}
-        />
+        <MapWorkspace layers={layers} serviceStatus={serviceStatus} />
       </div>
 
       {config.ui.sidebar && (
         <MobileNavigation
           open={mobileNavigationOpen}
           layerCatalogStatus={layerCatalogStatus}
-          layers={layerCatalog.data ?? []}
+          layers={layers}
           serviceStatus={serviceStatus}
           onOpenChange={setMobileNavigationOpen}
         />

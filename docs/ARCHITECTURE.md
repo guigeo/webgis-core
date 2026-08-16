@@ -93,21 +93,26 @@ Componentes não deverão buscar dados diretamente se essa responsabilidade pert
 
 ### 4.4 Módulos
 
-`frontend/src/modules/` contém extensões compostas em build time. Um módulo poderá contribuir conceitualmente com:
+`frontend/src/modules/` contém extensões compostas em build time. A Fase 6 consolidou o menor contrato necessário observado no Core:
 
 ```typescript
+interface CatalogLayerContribution {
+  layerId: string
+}
+
 interface WebGisModule {
   id: string
   version: string
-  navigation?: NavigationContribution[]
-  panels?: PanelContribution[]
-  mapTools?: MapToolContribution[]
-  layers?: LayerDefinition[]
-  setup?: () => void | CleanupFunction
+  layers?: readonly CatalogLayerContribution[]
+  setup?: () => void | (() => void)
 }
 ```
 
-Este contrato é conceitual na Etapa 0. Sua forma final será definida na Fase 6 usando necessidades já observadas no Core. O módulo `reference` deverá apenas provar registro e remoção, sem representar uma vertical de negócio.
+O módulo declara ownership por IDs do catálogo, sem duplicar `LayerDefinition`. O registro rejeita módulos ausentes ou duplicados e impede que dois módulos possuam a mesma camada. Setup ocorre na ordem da composição; cleanup, na ordem inversa.
+
+`frontend/src/app/modules.ts` importa os módulos disponíveis. `app.config.ts` escolhe seus IDs habilitados. Remover `reference` da configuração elimina suas contribuições da interface e limpa o estado de seleção, sem editar Core, shell ou backend. Os dados persistidos podem permanecer dormentes no PostGIS.
+
+Novos extension points serão adicionados somente quando uma aplicação derivada demonstrar necessidade concreta; navegação, painéis e ferramentas não foram antecipados.
 
 ### 4.5 Estado
 

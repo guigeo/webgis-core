@@ -84,4 +84,21 @@ describe('layer store', () => {
 
     expect(useLayerStore.getState().selection?.featureId).toBe('3550308')
   })
+
+  it('remove runtime e seleção quando uma contribuição deixa a composição', () => {
+    const store = useLayerStore.getState()
+    store.initializeLayers([layer('points', 5), layer('polygons', 10)])
+    store.setSelection({
+      layerId: 'points',
+      featureId: '3550308',
+      properties: { name: 'São Paulo' },
+    })
+
+    store.initializeLayers([layer('polygons', 10)])
+
+    const state = useLayerStore.getState()
+    expect(state.order).toEqual(['polygons'])
+    expect(state.runtime.points).toBeUndefined()
+    expect(state.selection).toBeNull()
+  })
 })

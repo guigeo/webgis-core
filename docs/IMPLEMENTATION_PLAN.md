@@ -1,7 +1,7 @@
 # Plano de Implementação — Geo Core V1
 
-**Status geral:** Fase 5 concluída
-**Próximo gate:** definir o escopo da Fase 6 — prova de derivação
+**Status geral:** Fase 6 concluída
+**Próximo gate:** definir as capacidades prioritárias da Fase 7
 **Última atualização:** 2026-08-15
 
 ## 1. Forma de trabalho
@@ -30,7 +30,7 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 | 3 — Map Core                      | Concluída    | mapa funcional com acesso organizado à instância         |
 | 4 — Primeira camada ponta a ponta | Concluída    | PostGIS → API → mapa → seleção → popup                   |
 | 5 — Sistema genérico de camadas   | Concluída    | segunda camada não altera componentes genéricos          |
-| 6 — Prova de derivação            | Não iniciada | módulo pode ser adicionado e removido sem alterar o Core |
+| 6 — Prova de derivação            | Concluída    | módulo pode ser adicionado e removido sem alterar o Core |
 | 7 — Ferramentas e acabamento      | Não iniciada | capacidades priorizadas funcionam por configuração       |
 | 8 — Qualidade e entrega           | Não iniciada | CI, documentação e build/deploy validados                |
 
@@ -192,12 +192,12 @@ A segunda camada deverá funcionar sem condicionais específicas nos componentes
 
 ### Escopo previsto
 
-- [ ] definir a forma mínima final de `WebGisModule`;
-- [ ] implementar registro explícito no composition root;
-- [ ] implementar extension point realmente necessário;
-- [ ] criar módulo `reference` sem regra de negócio;
-- [ ] testar registro, contribuição, cleanup e remoção;
-- [ ] documentar como iniciar um módulo derivado.
+- [x] definir a forma mínima final de `WebGisModule`;
+- [x] implementar registro explícito no composition root;
+- [x] implementar extension point realmente necessário;
+- [x] criar módulo `reference` sem regra de negócio;
+- [x] testar registro, contribuição, cleanup e remoção;
+- [x] documentar como iniciar um módulo derivado.
 
 ### Fora de escopo
 
@@ -349,3 +349,19 @@ Ao concluir cada fase, adicionar nesta seção:
 - inspeção visual automatizada indisponível porque não havia navegador conectado à sessão; aplicação disponível em `http://localhost:8080` para revisão manual;
 - revisão visual e funcional aprovada em 2026-08-15;
 - fora do escopo preservado: sem filtros arbitrários, busca, vector tiles ou regras de negócio específicas.
+
+### Fase 6
+
+- branch: `agent/derivation-proof`;
+- contrato público mínimo `WebGisModule` define identidade, versão, contribuições de IDs do catálogo e lifecycle opcional;
+- `frontend/src/app/modules.ts` atua como composition root explícito, enquanto `app.config.ts` escolhe módulos habilitados;
+- módulo `reference` possui as duas camadas IBGE sem duplicar estilo, popup ou metadados do catálogo;
+- registro valida módulos ausentes/duplicados e ownership exclusivo de cada camada;
+- provider conecta setup e cleanup ao lifecycle React, com cleanup reverso e idempotente;
+- remoção do módulo entrega catálogo vazio ao shell e limpa estado/seleção sem alterar componentes genéricos;
+- guia `docs/DERIVATION.md` documenta criação, registro, habilitação, cleanup e remoção de módulos;
+- frontend: ESLint, Prettier, 32 testes Vitest e build de produção aprovados;
+- backend permanece genérico e sem alterações; Ruff e 24 testes Pytest continuam aprovados;
+- stack com database, backend, frontend e Nginx saudáveis; aplicação e health respondem HTTP 200;
+- revisão funcional aprovada em 2026-08-15, sem regressão visual ou de interação;
+- fora do escopo preservado: sem runtime de plugins, marketplace, registry ou carregamento remoto.
