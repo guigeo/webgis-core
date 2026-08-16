@@ -293,6 +293,10 @@ O baseline inclui:
 - logs estruturados e request ID;
 - health checks separados para processo e dependências.
 
+O gateway aplica limites por endereço de origem antes da API: taxa e burst, conexões simultâneas, corpo máximo e timeouts. Respostas bloqueadas usam HTTP 429 em JSON, `Retry-After` e identificador próprio. Headers CSP, anti-framing, `nosniff`, referrer, permissions e isolamento cross-origin são emitidos com `always`, inclusive para respostas de erro. HSTS fica reservado ao perfil HTTPS de produção.
+
+A CSP de desenvolvimento contém a exceção mínima necessária ao React Refresh do Vite. O perfil de produção deverá servir artefatos estáticos e remover `unsafe-inline`; aplicações derivadas precisam declarar na allowlist os hosts de basemap e demais integrações externas.
+
 Autenticação não fará parte do V1, mas o shell e a API não deverão assumir que todo recurso será eternamente público.
 
 ## 11. Estratégia de testes

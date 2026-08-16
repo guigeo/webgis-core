@@ -39,9 +39,13 @@ docker compose ps
 docker compose logs -f
 ```
 
-Cada resposta da API inclui `X-Request-ID`. Um identificador válido enviado pelo cliente é preservado; caso contrário, a API gera um UUID. Os logs HTTP são emitidos em JSON com método, caminho, status e duração, permitindo correlacionar uma resposta de erro com o registro interno sem expor detalhes sensíveis ao cliente. O nível mínimo é configurado por `LOG_LEVEL`.
+Cada resposta da API inclui `X-Request-ID`. Um identificador válido enviado pelo cliente é preservado; caso contrário, o gateway ou a API gera um identificador de correlação. Os logs HTTP são emitidos em JSON com método, caminho, status e duração, permitindo correlacionar uma resposta de erro com o registro interno sem expor detalhes sensíveis ao cliente. O nível mínimo é configurado por `LOG_LEVEL`.
 
 O backend conecta ao PostGIS com `POSTGRES_APP_USER`, sem privilégios de escrita, criação de objetos ou administração. `POSTGRES_USER` fica restrito ao container do banco e ao serviço `migrate`. Quando uma migration cadastra uma nova fonte em `core.layers`, o provisionamento concede `USAGE` no schema e `SELECT` apenas na tabela cadastrada.
+
+O Nginx limita a API por IP, restringe conexões simultâneas, tamanho do corpo e timeouts, e devolve HTTP 429 em JSON com `Retry-After`. CSP, proteção contra framing, `nosniff`, políticas de referrer/permissões e isolamento cross-origin são aplicados inclusive em erros. Os valores `NGINX_API_RATE`, `NGINX_API_BURST`, `NGINX_API_CONNECTIONS`, `NGINX_CLIENT_MAX_BODY_SIZE` e `NGINX_CONTENT_SECURITY_POLICY` permitem ajustar o gateway por deploy.
+
+> A CSP local permite scripts inline para o React Refresh do servidor Vite. A configuração de produção deverá remover essa exceção ao servir o bundle estático. Ao trocar basemap ou adicionar serviços externos, atualize explicitamente a allowlist da CSP.
 
 Para encerrar sem remover os dados do PostGIS:
 
@@ -74,6 +78,12 @@ Backend, dentro do container:
 docker compose exec backend ruff check .
 docker compose exec backend ruff format --check .
 docker compose exec backend pytest
+```
+
+O smoke/E2E do gateway valida headers, limite de corpo, rate limiting e o fluxo PostGIS → API → GeoJSON:
+
+```bash
+sh scripts/test-gateway.sh
 ```
 
 O workflow `.github/workflows/ci.yml` executa essas verificações em todo pull request e em cada atualização da branch `main`, usando Node.js 22 e Python 3.13. O frontend e o backend rodam em jobs independentes para que falhas sejam identificadas com clareza.
