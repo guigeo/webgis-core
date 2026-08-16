@@ -9,6 +9,9 @@ import { AppConfigProvider } from './config/provider'
 import { appConfigSchema, type AppConfig } from './config/schema'
 import type { LayerDefinition } from './core/layers/contracts'
 import { useLayerStore } from './core/layers/store'
+import type { WebGisModule } from './core/modules/contracts'
+import { WebGisModulesProvider } from './core/modules/provider'
+import { referenceModule } from './modules/reference'
 
 const mapAdapterSpies = vi.hoisted(() => ({
   setLayerData: vi.fn(),
@@ -55,7 +58,12 @@ vi.mock('./core/map/maplibre-map-adapter', () => ({
   }),
 }))
 
-function renderApp(config: AppConfig = appConfig) {
+const defaultModules = [referenceModule]
+
+function renderApp(
+  config: AppConfig = appConfig,
+  modules: readonly WebGisModule[] = defaultModules,
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -65,9 +73,11 @@ function renderApp(config: AppConfig = appConfig) {
   return render(
     <QueryClientProvider client={queryClient}>
       <AppConfigProvider config={config}>
-        <AppTooltipProvider>
-          <App />
-        </AppTooltipProvider>
+        <WebGisModulesProvider modules={modules}>
+          <AppTooltipProvider>
+            <App />
+          </AppTooltipProvider>
+        </WebGisModulesProvider>
       </AppConfigProvider>
     </QueryClientProvider>,
   )
@@ -86,7 +96,7 @@ function mockHealthyServices() {
 }
 
 const polygonLayer: LayerDefinition = {
-  id: 'polygons',
+  id: 'ibge-rmsp-municipalities',
   name: 'Municípios da RMSP',
   description: 'Limites municipais',
   groupName: 'Referência territorial',
@@ -121,7 +131,7 @@ const polygonLayer: LayerDefinition = {
 
 const pointLayer: LayerDefinition = {
   ...polygonLayer,
-  id: 'points',
+  id: 'ibge-rmsp-municipality-points',
   name: 'Pontos municipais da RMSP',
   sortOrder: 5,
   geometryType: 'Point',
@@ -158,7 +168,9 @@ function mockLayerServices() {
           type: 'FeatureCollection',
           features: [],
           metadata: {
-            layerId: url.includes('points') ? 'points' : 'polygons',
+            layerId: url.includes('municipality-points')
+              ? 'ibge-rmsp-municipality-points'
+              : 'ibge-rmsp-municipalities',
             returned: 0,
             limit: 50,
             truncated: false,
@@ -266,6 +278,26 @@ describe('App', () => {
     )
     expect(
       mapAdapterSpies.setLayerData.mock.calls.map(([layer]) => layer.id),
-    ).toEqual(expect.arrayContaining(['points', 'polygons']))
+    ).toEqual(
+      expect.arrayContaining([
+        'ibge-rmsp-municipality-points',
+        'ibge-rmsp-municipalities',
+      ]),
+    )
+  })
+
+  it('remove todas as contribuições ao retirar o módulo da composição', async () => {
+    mockLayerServices()
+
+    renderApp(appConfig, [])
+
+    expect(
+      await screen.findByText('Nenhuma camada cadastrada'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('Pontos municipais da RMSP'),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('Municípios da RMSP')).not.toBeInTheDocument()
+    expect(mapAdapterSpies.setLayerData).not.toHaveBeenCalled()
   })
 })

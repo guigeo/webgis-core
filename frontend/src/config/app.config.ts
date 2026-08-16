@@ -41,4 +41,5 @@ export const appConfig = appConfigSchema.parse({
     layers: true,
     legend: true,
   },
+  modules: ['reference'],
 })

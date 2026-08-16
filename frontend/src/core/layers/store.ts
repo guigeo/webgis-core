@@ -52,6 +52,10 @@ export const useLayerStore = create<LayerStoreState>((set) => ({
       return {
         order: [...existingOrder, ...newDefinitions.map(({ id }) => id)],
         runtime,
+        selection:
+          state.selection && definitionIds.has(state.selection.layerId)
+            ? state.selection
+            : null,
       }
     }),
 

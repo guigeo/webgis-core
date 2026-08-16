@@ -2,7 +2,7 @@
 
 Fundação WebGIS open source para derivar aplicações geográficas por configuração e composição de módulos.
 
-O projeto está em implementação incremental. A Fase 5 transforma o fluxo PostGIS → API → MapLibre em um sistema genérico de camadas, com duas geometrias de referência, estado independente, legenda, seleção e popup.
+O projeto está em implementação incremental. A Fase 6 adiciona composição explícita de módulos em build time e prova que camadas de referência podem entrar ou sair do produto sem alterar o Core ou o Application Shell.
 
 ## Requisitos
 
@@ -89,6 +89,9 @@ A configuração de produto fica em `frontend/src/config/app.config.ts` e é val
 - basemap, atribuição e referência aos termos de uso;
 - visibilidade de sidebar, toolbar e status bar;
 - seções genéricas habilitadas.
+- módulos habilitados no produto.
+
+Os módulos disponíveis são registrados em `frontend/src/app/modules.ts`. O módulo `reference` possui os dois IDs de camada do IBGE; remover `reference` da lista `modules` da configuração retira essas camadas da interface sem apagar seus dados persistidos.
 
 Configuração inválida interrompe a inicialização com erro explícito. Segredos e valores do ambiente de deploy não devem ser adicionados a esse arquivo.
 
@@ -104,6 +107,7 @@ Antes de entregar uma aplicação derivada em produção, avalie o volume previs
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Plano de implementação](docs/IMPLEMENTATION_PLAN.md)
 - [Dados de referência](docs/DATASETS.md)
+- [Como derivar e criar módulos](docs/DERIVATION.md)
 - [Decisões arquiteturais](docs/adr/)
 
 ## Estado

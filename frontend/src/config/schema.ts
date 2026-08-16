@@ -49,6 +49,11 @@ export const appConfigSchema = z
       layers: z.boolean(),
       legend: z.boolean(),
     }),
+    modules: z
+      .array(z.string().regex(/^[a-z][a-z0-9-]*$/))
+      .refine((modules) => new Set(modules).size === modules.length, {
+        message: 'modules não pode conter ids duplicados',
+      }),
   })
   .superRefine((config, context) => {
     if (config.map.minZoom > config.map.maxZoom) {

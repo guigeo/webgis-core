@@ -74,4 +74,13 @@ describe('appConfigSchema', () => {
       }),
     ).toThrow('sidebar habilitada exige ao menos uma seção disponível')
   })
+
+  it('rejeita ids de módulos duplicados', () => {
+    expect(() =>
+      appConfigSchema.parse({
+        ...appConfig,
+        modules: ['reference', 'reference'],
+      }),
+    ).toThrow('modules não pode conter ids duplicados')
+  })
 })
