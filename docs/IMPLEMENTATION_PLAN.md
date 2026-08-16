@@ -1,7 +1,7 @@
 # Plano de Implementação — Geo Core V1
 
-**Status geral:** Fase 1 em revisão
-**Próximo gate:** aprovação do bootstrap executável
+**Status geral:** Fase 2 em revisão
+**Próximo gate:** aprovação do Application Shell configurável
 **Última atualização:** 2026-08-15
 
 ## 1. Forma de trabalho
@@ -22,17 +22,17 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 
 ## 2. Estado das fases
 
-| Fase | Estado | Gate |
-|---|---|---|
-| 0 — Especificação e arquitetura | Concluída | baseline documental aprovada |
-| 1 — Bootstrap executável | Em revisão | ambiente integrado sobe por Docker Compose |
-| 2 — Application Shell | Não iniciada | branding e shell controlados por configuração |
-| 3 — Map Core | Não iniciada | mapa funcional com acesso organizado à instância |
-| 4 — Primeira camada ponta a ponta | Não iniciada | PostGIS → API → mapa → seleção → popup |
-| 5 — Sistema genérico de camadas | Não iniciada | segunda camada não altera componentes genéricos |
-| 6 — Prova de derivação | Não iniciada | módulo pode ser adicionado e removido sem alterar o Core |
-| 7 — Ferramentas e acabamento | Não iniciada | capacidades priorizadas funcionam por configuração |
-| 8 — Qualidade e entrega | Não iniciada | CI, documentação e build/deploy validados |
+| Fase                              | Estado       | Gate                                                     |
+| --------------------------------- | ------------ | -------------------------------------------------------- |
+| 0 — Especificação e arquitetura   | Concluída    | baseline documental aprovada                             |
+| 1 — Bootstrap executável          | Concluída    | ambiente integrado sobe por Docker Compose               |
+| 2 — Application Shell             | Em revisão   | branding e shell controlados por configuração            |
+| 3 — Map Core                      | Não iniciada | mapa funcional com acesso organizado à instância         |
+| 4 — Primeira camada ponta a ponta | Não iniciada | PostGIS → API → mapa → seleção → popup                   |
+| 5 — Sistema genérico de camadas   | Não iniciada | segunda camada não altera componentes genéricos          |
+| 6 — Prova de derivação            | Não iniciada | módulo pode ser adicionado e removido sem alterar o Core |
+| 7 — Ferramentas e acabamento      | Não iniciada | capacidades priorizadas funcionam por configuração       |
+| 8 — Qualidade e entrega           | Não iniciada | CI, documentação e build/deploy validados                |
 
 ## 3. Fase 0 — Especificação e arquitetura
 
@@ -103,12 +103,12 @@ deverá disponibilizar frontend, `/api/health` e conexão saudável com o PostGI
 
 ### Escopo previsto
 
-- [ ] criar Header, Sidebar, MapViewport vazio, Toolbar e StatusBar;
-- [ ] criar estados de loading, erro e vazio;
-- [ ] definir configuração tipada e validada;
-- [ ] configurar nome, logo, cores, extent e capacidades habilitadas;
-- [ ] implementar responsividade desktop-first e consulta funcional em telas menores;
-- [ ] adicionar testes da configuração e do shell.
+- [x] criar Header, Sidebar, MapViewport vazio, Toolbar e StatusBar;
+- [x] criar estados de loading, erro e vazio;
+- [x] definir configuração tipada e validada;
+- [x] configurar nome, logo, cores, extent e capacidades habilitadas;
+- [x] implementar responsividade desktop-first e consulta funcional em telas menores;
+- [x] adicionar testes da configuração e do shell.
 
 ### Fora de escopo
 
@@ -278,3 +278,20 @@ Ao concluir cada fase, adicionar nesta seção:
 - `npm audit`: nenhuma vulnerabilidade conhecida reportada;
 - limitação conhecida: a imagem oficial `postgis/postgis:17-3.5` é AMD64 e usa emulação do Docker Desktop em Apple Silicon;
 - MapLibre, Application Shell, catálogo de camadas e migrations de domínio não foram antecipados.
+
+### Fase 2
+
+- branch: `agent/application-shell`;
+- commit: `4caf04f` (`feat: add configurable application shell`);
+- configuração de produto validada por Zod e injetada por provider;
+- branding dinâmico por CSS variables, sem alteração dos componentes do shell;
+- Header, Sidebar recolhível, MapViewport vazio, Toolbar, StatusBar e drawer móvel implementados;
+- estados de loading, indisponibilidade e vazio implementados;
+- server state de health migrado para TanStack Query;
+- Tailwind CSS e primitives no padrão shadcn/Radix adicionados;
+- frontend: ESLint, Prettier, 8 testes Vitest e build de produção aprovados no container;
+- `npm audit`: nenhuma vulnerabilidade conhecida reportada;
+- database, backend, frontend e Nginx saudáveis;
+- `GET /`: HTTP 200 via Nginx e `GET /api/health`: API/PostGIS em estado `ok`;
+- inspeção visual automatizada indisponível porque não havia navegador conectado à sessão; shell mantido em `http://localhost:8080` para revisão;
+- MapLibre, camadas, ferramentas GIS reais, Dark Mode e busca não foram antecipados.

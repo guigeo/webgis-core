@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query'
+
 export interface HealthResponse {
   status: 'ok'
   database: 'ok'
@@ -13,4 +15,12 @@ export async function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
   }
 
   return (await response.json()) as HealthResponse
+}
+
+export function useHealthQuery() {
+  return useQuery({
+    queryKey: ['health'],
+    queryFn: ({ signal }) => getHealth(signal),
+    refetchInterval: 30_000,
+  })
 }

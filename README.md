@@ -2,7 +2,7 @@
 
 Fundação WebGIS open source para derivar aplicações geográficas por configuração e composição de módulos.
 
-O projeto está em implementação incremental. A Fase 1 entrega apenas o bootstrap integrado; mapa, Application Shell e camadas pertencem às fases seguintes.
+O projeto está em implementação incremental. A Fase 2 entrega o Application Shell configurável; MapLibre, mapa real e camadas pertencem às fases seguintes.
 
 ## Requisitos
 
@@ -39,6 +39,13 @@ Para encerrar sem remover os dados do PostGIS:
 docker compose down
 ```
 
+Ao alterar dependências do frontend durante o desenvolvimento, sincronize o volume local antes de reiniciar o serviço:
+
+```bash
+docker compose run --rm frontend npm ci
+docker compose up -d frontend nginx
+```
+
 ## Verificações
 
 Frontend, dentro do container:
@@ -67,6 +74,18 @@ database/       inicialização do PostGIS e futuros dados de referência
 nginx/          reverse proxy local
 docs/           arquitetura, ADRs e plano de implementação
 ```
+
+## Configuração da aplicação
+
+A configuração de produto fica em `frontend/src/config/app.config.ts` e é validada por Zod na inicialização. Ela controla:
+
+- nome, sigla, descrição e logo;
+- cores primária e de destaque;
+- centro e níveis de zoom futuros do mapa;
+- visibilidade de sidebar, toolbar e status bar;
+- seções genéricas habilitadas.
+
+Configuração inválida interrompe a inicialização com erro explícito. Segredos e valores do ambiente de deploy não devem ser adicionados a esse arquivo.
 
 ## Documentação
 
