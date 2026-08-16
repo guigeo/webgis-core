@@ -70,27 +70,13 @@ select {
     auto;
 }
 
-.map-canvas::before,
-.map-canvas::after {
-  position: absolute;
-  z-index: 0;
-  width: 28rem;
-  height: 18rem;
-  border: 1px solid rgb(100 116 139 / 13%);
-  border-radius: 48% 52% 38% 62%;
-  content: '';
-  transform: rotate(-11deg);
+.maplibregl-ctrl-attrib {
+  font-size: 10px;
 }
 
-.map-canvas::before {
-  top: 12%;
-  left: 7%;
-}
-
-.map-canvas::after {
-  right: 4%;
-  bottom: 7%;
-  transform: rotate(17deg) scale(0.82);
+[data-map-workspace]:fullscreen {
+  width: 100%;
+  height: 100%;
 }
 
 @keyframes service-pulse {

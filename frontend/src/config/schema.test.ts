@@ -48,6 +48,21 @@ describe('appConfigSchema', () => {
     ).toThrow('zoom deve estar entre minZoom e maxZoom')
   })
 
+  it('rejeita extensão inicial com limites invertidos', () => {
+    expect(() =>
+      appConfigSchema.parse({
+        ...appConfig,
+        map: {
+          ...appConfig.map,
+          homeBounds: [
+            [-45, -22],
+            [-47, -24],
+          ],
+        },
+      }),
+    ).toThrow('homeBounds deve seguir [sudoeste, nordeste]')
+  })
+
   it('rejeita sidebar sem uma seção habilitada', () => {
     expect(() =>
       appConfigSchema.parse({

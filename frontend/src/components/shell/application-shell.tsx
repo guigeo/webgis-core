@@ -3,12 +3,10 @@ import { useState } from 'react'
 
 import { useAppConfig } from '../../config/context'
 import { useHealthQuery } from '../../services/health'
+import { MapWorkspace } from '../gis/map-workspace'
 import { Header } from './header'
-import { MapPlaceholder } from './map-placeholder'
 import { MobileNavigation } from './mobile-navigation'
 import { Sidebar } from './sidebar'
-import { StatusBar } from './status-bar'
-import { Toolbar } from './toolbar'
 import type { ServiceStatus } from './types'
 
 export function ApplicationShell() {
@@ -52,11 +50,7 @@ export function ApplicationShell() {
           </div>
         )}
 
-        <div className="relative flex min-w-0 flex-1 flex-col">
-          <MapPlaceholder />
-          {config.ui.toolbar && <Toolbar />}
-          {config.ui.statusBar && <StatusBar serviceStatus={serviceStatus} />}
-        </div>
+        <MapWorkspace serviceStatus={serviceStatus} />
       </div>
 
       {config.ui.sidebar && (
