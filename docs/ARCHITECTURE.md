@@ -45,9 +45,13 @@ Nginx
                        │
                        ▼
                  PostgreSQL/PostGIS
+
+Migration service (one-shot) ──► PostgreSQL/PostGIS
 ```
 
 No desenvolvimento, todos os serviços serão iniciados por Docker Compose. Somente o Nginx será publicado no fluxo integrado. O banco não será exposto em produção.
+
+O serviço efêmero de migration é o único consumidor da credencial administrativa da aplicação. Ele provisiona o papel de runtime, executa Alembic e recalcula as concessões após cada evolução do catálogo. O processo persistente da API recebe apenas a credencial de runtime.
 
 ## 4. Visão lógica do frontend
 
@@ -99,14 +103,14 @@ Componentes não deverão buscar dados diretamente se essa responsabilidade pert
 
 ```typescript
 interface CatalogLayerContribution {
-  layerId: string
+  layerId: string;
 }
 
 interface WebGisModule {
-  id: string
-  version: string
-  layers?: readonly CatalogLayerContribution[]
-  setup?: () => void | (() => void)
+  id: string;
+  version: string;
+  layers?: readonly CatalogLayerContribution[];
+  setup?: () => void | (() => void);
 }
 ```
 
@@ -178,6 +182,8 @@ Responsabilidades principais:
 Toda requisição recebe um identificador de correlação validado ou gerado pela API. O middleware devolve esse valor em `X-Request-ID`, registra método, caminho, status e duração em JSON e converte exceções inesperadas em uma resposta HTTP 500 genérica que contém apenas o identificador público. Tracebacks permanecem restritos aos logs internos.
 
 Alembic será a única fonte de verdade para migrations de schema da aplicação.
+
+O papel de runtime é `NOSUPERUSER`, `NOCREATEDB`, `NOCREATEROLE`, `NOREPLICATION`, `NOBYPASSRLS` e `NOINHERIT`. Ele possui `USAGE` somente em `core` e nos schemas referenciados pelo catálogo, `SELECT` em `core.layers` e nas tabelas cadastradas, sem escrita, sequences ou criação de objetos. Identificadores provenientes do catálogo são escapados como identificadores SQL antes das concessões.
 
 ## 7. Catálogo e fluxo de dados
 

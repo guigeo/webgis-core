@@ -233,7 +233,7 @@ Cada capacidade implementada deverá possuir feature flag ou configuração quan
 - [ ] consolidar testes unitários, integração e E2E;
 - [x] configurar CI para lint, types, testes e build;
 - [x] estruturar logs, request ID e erros públicos;
-- [ ] aplicar usuário de banco com privilégios mínimos;
+- [x] aplicar usuário de banco com privilégios mínimos;
 - [ ] configurar limites, rate limiting e headers de segurança;
 - [ ] concluir documentação de desenvolvimento e derivação;
 - [ ] criar configuração de produção;
@@ -403,3 +403,15 @@ Ao concluir cada fase, adicionar nesta seção:
 - nível mínimo de log configurável por `LOG_LEVEL`;
 - backend: Ruff, formatação e 29 testes Pytest aprovados;
 - validação integrada: request ID fornecido atravessou Nginx/API, retornou no header e apareceu no log JSON correspondente.
+
+### Fase 8 — privilégio mínimo no PostGIS
+
+- branch: `agent/database-least-privilege`;
+- serviço efêmero `migrate` concentra credencial administrativa, provisionamento e Alembic;
+- backend persistente conecta somente como `geo_core_app`;
+- papel runtime sem superusuário, criação de roles/databases, replication, bypass de RLS ou inheritance;
+- concessões recalculadas a partir do catálogo: `USAGE` nos schemas e `SELECT` apenas em `core.layers` e nas fontes cadastradas;
+- nenhuma permissão de escrita, sequence ou criação de objetos nos schemas da aplicação;
+- compatibilidade validada sobre o volume PostGIS existente, sem recriação ou perda de dados;
+- 39 testes unitários aprovados e teste de integração PostGIS confirma identidade e permissões efetivas;
+- CI passa a iniciar PostGIS, executar migrations/concessões e validar o usuário runtime em toda alteração.

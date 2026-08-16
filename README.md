@@ -26,7 +26,7 @@ Acesse:
 - health da API: <http://localhost:8080/api/health>;
 - documentação OpenAPI: <http://localhost:8080/api/docs>.
 
-Na inicialização, o backend executa `alembic upgrade head`. A primeira migration cadastra e carrega os 39 municípios da Região Metropolitana de São Paulo a partir de um snapshot público do IBGE versionado no repositório.
+Na inicialização, o serviço efêmero `migrate` provisiona o usuário de runtime, executa `alembic upgrade head` com a credencial administrativa e concede somente leitura às fontes cadastradas. A saída `Exited (0)` desse serviço é esperada. A primeira migration cadastra e carrega os 39 municípios da Região Metropolitana de São Paulo a partir de um snapshot público do IBGE versionado no repositório.
 
 O painel de camadas permite controlar visibilidade, opacidade e ordem. Definições de grupo, estilo, campos do popup, metadados e atribuição vêm do catálogo da API; os componentes não conhecem os nomes das camadas ou tabelas.
 
@@ -40,6 +40,8 @@ docker compose logs -f
 ```
 
 Cada resposta da API inclui `X-Request-ID`. Um identificador válido enviado pelo cliente é preservado; caso contrário, a API gera um UUID. Os logs HTTP são emitidos em JSON com método, caminho, status e duração, permitindo correlacionar uma resposta de erro com o registro interno sem expor detalhes sensíveis ao cliente. O nível mínimo é configurado por `LOG_LEVEL`.
+
+O backend conecta ao PostGIS com `POSTGRES_APP_USER`, sem privilégios de escrita, criação de objetos ou administração. `POSTGRES_USER` fica restrito ao container do banco e ao serviço `migrate`. Quando uma migration cadastra uma nova fonte em `core.layers`, o provisionamento concede `USAGE` no schema e `SELECT` apenas na tabela cadastrada.
 
 Para encerrar sem remover os dados do PostGIS:
 
