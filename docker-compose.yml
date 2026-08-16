@@ -91,9 +91,16 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
+    environment:
+      NGINX_API_BURST: ${NGINX_API_BURST:-20}
+      NGINX_API_CONNECTIONS: ${NGINX_API_CONNECTIONS:-20}
+      NGINX_API_RATE: ${NGINX_API_RATE:-10r/s}
+      NGINX_CLIENT_MAX_BODY_SIZE: ${NGINX_CLIENT_MAX_BODY_SIZE:-16k}
+      NGINX_CONTENT_SECURITY_POLICY: "${NGINX_CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://a.basemaps.cartocdn.com; connect-src 'self' ws: wss:; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'}"
     ports:
       - "${APP_PORT:-8080}:80"
     volumes:
+      - ./nginx/00-http.conf:/etc/nginx/templates/00-http.conf.template:ro
       - ./nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
     depends_on:
       backend:

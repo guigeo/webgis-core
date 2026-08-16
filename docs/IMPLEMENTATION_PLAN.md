@@ -230,11 +230,11 @@ Cada capacidade implementada deverá possuir feature flag ou configuração quan
 
 ### Escopo previsto
 
-- [ ] consolidar testes unitários, integração e E2E;
+- [x] consolidar testes unitários, integração e E2E;
 - [x] configurar CI para lint, types, testes e build;
 - [x] estruturar logs, request ID e erros públicos;
 - [x] aplicar usuário de banco com privilégios mínimos;
-- [ ] configurar limites, rate limiting e headers de segurança;
+- [x] configurar limites, rate limiting e headers de segurança;
 - [ ] concluir documentação de desenvolvimento e derivação;
 - [ ] criar configuração de produção;
 - [ ] preparar HTTPS, volumes e restart policy;
@@ -415,3 +415,16 @@ Ao concluir cada fase, adicionar nesta seção:
 - compatibilidade validada sobre o volume PostGIS existente, sem recriação ou perda de dados;
 - 39 testes unitários aprovados e teste de integração PostGIS confirma identidade e permissões efetivas;
 - CI passa a iniciar PostGIS, executar migrations/concessões e validar o usuário runtime em toda alteração.
+
+### Fase 8 — proteção HTTP no gateway
+
+- branch: `agent/http-security`;
+- rate limit padrão de 10 req/s por IP com burst 20 e resposta HTTP 429 em JSON;
+- limite de 20 conexões simultâneas por IP, corpo máximo de 16 KB e timeouts explícitos;
+- CSP compatível com Vite/MapLibre/CARTO no desenvolvimento, além de anti-frame, `nosniff`, referrer, permissions e isolamento cross-origin;
+- request ID validado ou gerado no gateway e propagado ao backend;
+- access logs do Nginx em JSON com correlação, status, bytes e duração;
+- parâmetros operacionais configuráveis por ambiente para aplicações derivadas;
+- smoke/E2E cobre headers, HTTP 413, HTTP 429 e o fluxo PostGIS → catálogo → GeoJSON;
+- CI ganha job `Gateway`, que constrói a stack integrada, executa o E2E e sempre remove os volumes efêmeros;
+- inspeção visual automatizada indisponível nesta sessão por ausência de navegador conectado; revisão manual permanece em `http://localhost:8080`.
