@@ -1,7 +1,7 @@
 # Arquitetura — Geo Core V1
 
 **Status:** baseline da Etapa 0  
-**Última revisão:** 2026-08-15
+**Última revisão:** 2026-08-16
 
 ## 1. Objetivo arquitetural
 
@@ -174,6 +174,8 @@ Responsabilidades principais:
 - `services/`: casos de uso e políticas;
 - `repositories/`: acesso ao catálogo e consultas espaciais;
 - `models/`: mapeamento persistente quando necessário.
+
+Toda requisição recebe um identificador de correlação validado ou gerado pela API. O middleware devolve esse valor em `X-Request-ID`, registra método, caminho, status e duração em JSON e converte exceções inesperadas em uma resposta HTTP 500 genérica que contém apenas o identificador público. Tracebacks permanecem restritos aos logs internos.
 
 Alembic será a única fonte de verdade para migrations de schema da aplicação.
 

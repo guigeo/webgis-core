@@ -28,6 +28,7 @@ services:
       APP_NAME: ${APP_NAME:-Geo Core API}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-geo_core}:${POSTGRES_PASSWORD:-geo_core_local}@database:5432/${POSTGRES_DB:-geo_core}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ./backend:/app
     depends_on:
