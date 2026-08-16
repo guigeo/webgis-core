@@ -2,7 +2,7 @@
 
 Fundação WebGIS open source para derivar aplicações geográficas por configuração e composição de módulos.
 
-O projeto está em implementação incremental. A Fase 6 adiciona composição explícita de módulos em build time e prova que camadas de referência podem entrar ou sair do produto sem alterar o Core ou o Application Shell.
+O projeto está em implementação incremental. A Fase 7 adiciona ferramentas genéricas e configuráveis de medição de distância e área sobre o mapa, preservando a composição modular comprovada na fase anterior.
 
 ## Requisitos
 
@@ -29,6 +29,8 @@ Acesse:
 Na inicialização, o backend executa `alembic upgrade head`. A primeira migration cadastra e carrega os 39 municípios da Região Metropolitana de São Paulo a partir de um snapshot público do IBGE versionado no repositório.
 
 O painel de camadas permite controlar visibilidade, opacidade e ordem. Definições de grupo, estilo, campos do popup, metadados e atribuição vêm do catálogo da API; os componentes não conhecem os nomes das camadas ou tabelas.
+
+A toolbar permite medir distâncias e áreas por cliques no mapa. O desenho e o resultado são temporários, calculados no browser sobre a esfera terrestre e nunca persistidos no PostGIS. Use **Recomeçar medição**, **Encerrar medição** ou a tecla `Esc` para limpar a ferramenta.
 
 Para acompanhar os serviços:
 
@@ -88,8 +90,9 @@ A configuração de produto fica em `frontend/src/config/app.config.ts` e é val
 - centro, zoom e extensão inicial do mapa;
 - basemap, atribuição e referência aos termos de uso;
 - visibilidade de sidebar, toolbar e status bar;
-- seções genéricas habilitadas.
-- módulos habilitados no produto.
+- seções genéricas habilitadas;
+- módulos habilitados no produto;
+- disponibilidade independente das medições de distância e área.
 
 Os módulos disponíveis são registrados em `frontend/src/app/modules.ts`. O módulo `reference` possui os dois IDs de camada do IBGE; remover `reference` da lista `modules` da configuração retira essas camadas da interface sem apagar seus dados persistidos.
 

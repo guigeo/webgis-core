@@ -10,9 +10,11 @@ import type {
   MapAdapterFactory,
   MapBounds,
   MapLoadState,
+  MapMeasurementMode,
   MapSettings,
   MapViewState,
 } from './contracts'
+import { createMeasurementState } from './measurement'
 
 export function useMapCore(
   settings: MapSettings,
@@ -25,6 +27,9 @@ export function useMapCore(
   const [loadState, setLoadState] = useState<MapLoadState>('loading')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [viewportBounds, setViewportBounds] = useState<MapBounds | null>(null)
+  const [measurement, setMeasurement] = useState(() =>
+    createMeasurementState(null),
+  )
   const [viewState, setViewState] = useState<MapViewState>({
     center: settings.center,
     pointer: null,
@@ -49,6 +54,7 @@ export function useMapCore(
         setErrorMessage(error.message)
       },
       onFeatureSelect: (selection) => onFeatureSelect?.(selection),
+      onMeasurementChange: setMeasurement,
       onViewChange: setViewState,
       onViewportChange: setViewportBounds,
     })
@@ -89,6 +95,18 @@ export function useMapCore(
     (layerIds: string[]) => adapterRef.current?.setLayerOrder(layerIds),
     [],
   )
+  const startMeasurement = useCallback(
+    (mode: MapMeasurementMode) => adapterRef.current?.startMeasurement(mode),
+    [],
+  )
+  const resetMeasurement = useCallback(
+    () => adapterRef.current?.resetMeasurement(),
+    [],
+  )
+  const clearMeasurement = useCallback(
+    () => adapterRef.current?.clearMeasurement(),
+    [],
+  )
 
   return {
     workspaceRef,
@@ -97,6 +115,7 @@ export function useMapCore(
     errorMessage,
     viewState,
     viewportBounds,
+    measurement,
     goHome,
     fitHomeBounds,
     toggleFullscreen,
@@ -104,5 +123,8 @@ export function useMapCore(
     clearLayer,
     setLayerOpacity,
     setLayerOrder,
+    startMeasurement,
+    resetMeasurement,
+    clearMeasurement,
   }
 }

@@ -82,6 +82,8 @@ Não haverá descoberta dinâmica de módulos no V1.
 
 O adaptador de mapa deverá encapsular lifecycle e operações recorrentes sem tentar reproduzir toda a API do MapLibre. Integrações especializadas poderão acessar uma capability controlada, quando necessário e documentado.
 
+As medições de distância e área usam métodos explícitos do adaptador e GeoJSON temporário. Cálculo geodésico, formatação, estado React e apresentação MapLibre permanecem separados; nenhuma geometria de medição é enviada à API ou persistida.
+
 ### 4.3 Componentes
 
 `frontend/src/components/` contém componentes compartilhados:
@@ -119,6 +121,7 @@ Novos extension points serão adicionados somente quando uma aplicação derivad
 - Estado local permanece no componente.
 - Estado de servidor pertence ao TanStack Query.
 - Estado de interação compartilhada pertence ao Zustand.
+- Estado efêmero de uma ferramenta ativa, como medição, permanece no hook do mapa enquanto não houver consumidor externo.
 - A instância do MapLibre não deverá ser serializada nem duplicada no store.
 - O store guarda intenção da aplicação, como camada visível e seleção; o adaptador sincroniza essa intenção com o mapa.
 

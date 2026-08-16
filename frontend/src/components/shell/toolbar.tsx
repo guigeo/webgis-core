@@ -1,19 +1,29 @@
-import { Focus, Home, Maximize2, Ruler } from 'lucide-react'
+import { Focus, Home, Maximize2, Pentagon, Ruler } from 'lucide-react'
 
+import type { MapMeasurementMode } from '../../core/map/contracts'
+import { cn } from '../../lib/cn'
 import { Button } from '../ui/button'
 import { AppTooltip } from '../ui/tooltip'
 
 interface ToolbarProps {
   mapReady: boolean
+  measureAreaEnabled: boolean
+  measureDistanceEnabled: boolean
+  measurementMode: MapMeasurementMode | null
   onGoHome: () => void
   onFitHomeBounds: () => void
+  onStartMeasurement: (mode: MapMeasurementMode) => void
   onToggleFullscreen: () => Promise<void>
 }
 
 export function Toolbar({
   mapReady,
+  measureAreaEnabled,
+  measureDistanceEnabled,
+  measurementMode,
   onGoHome,
   onFitHomeBounds,
+  onStartMeasurement,
   onToggleFullscreen,
 }: ToolbarProps) {
   const tools = [
@@ -21,26 +31,45 @@ export function Toolbar({
       label: 'Vista inicial',
       icon: Home,
       disabled: !mapReady,
+      active: false,
       onClick: onGoHome,
     },
     {
       label: 'Enquadrar extensão inicial',
       icon: Focus,
       disabled: !mapReady,
+      active: false,
       onClick: onFitHomeBounds,
     },
     {
       label: 'Tela cheia',
       icon: Maximize2,
       disabled: !mapReady,
+      active: false,
       onClick: () => void onToggleFullscreen(),
     },
-    {
-      label: 'Medir · Fase 7',
-      icon: Ruler,
-      disabled: true,
-      onClick: undefined,
-    },
+    ...(measureDistanceEnabled
+      ? [
+          {
+            label: 'Medir distância',
+            icon: Ruler,
+            disabled: !mapReady,
+            active: measurementMode === 'distance',
+            onClick: () => onStartMeasurement('distance'),
+          },
+        ]
+      : []),
+    ...(measureAreaEnabled
+      ? [
+          {
+            label: 'Medir área',
+            icon: Pentagon,
+            disabled: !mapReady,
+            active: measurementMode === 'area',
+            onClick: () => onStartMeasurement('area'),
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -57,11 +86,18 @@ export function Toolbar({
             <span>
               <Button
                 type="button"
-                variant="ghost"
+                variant={tool.active ? 'subtle' : 'ghost'}
                 size="icon"
+                className={cn(
+                  tool.active &&
+                    'bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand)] hover:text-white',
+                )}
                 disabled={tool.disabled}
                 onClick={tool.onClick}
                 aria-label={tool.label}
+                aria-pressed={
+                  tool.label.startsWith('Medir') ? tool.active : undefined
+                }
               >
                 <Icon aria-hidden="true" className="size-4" />
               </Button>

@@ -68,11 +68,26 @@ describe('appConfigSchema', () => {
       appConfigSchema.parse({
         ...appConfig,
         capabilities: {
+          ...appConfig.capabilities,
           layers: false,
           legend: false,
         },
       }),
     ).toThrow('sidebar habilitada exige ao menos uma seção disponível')
+  })
+
+  it('permite desabilitar cada medição por configuração', () => {
+    const configured = appConfigSchema.parse({
+      ...appConfig,
+      capabilities: {
+        ...appConfig.capabilities,
+        measureDistance: false,
+        measureArea: true,
+      },
+    })
+
+    expect(configured.capabilities.measureDistance).toBe(false)
+    expect(configured.capabilities.measureArea).toBe(true)
   })
 
   it('rejeita ids de módulos duplicados', () => {

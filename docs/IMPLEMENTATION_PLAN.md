@@ -1,8 +1,8 @@
 # Plano de Implementação — Geo Core V1
 
-**Status geral:** Fase 6 concluída
-**Próximo gate:** definir as capacidades prioritárias da Fase 7
-**Última atualização:** 2026-08-15
+**Status geral:** Fase 7 concluída no recorte priorizado
+**Próximo gate:** definir o escopo da Fase 8 — qualidade e entrega
+**Última atualização:** 2026-08-16
 
 ## 1. Forma de trabalho
 
@@ -31,7 +31,7 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 | 4 — Primeira camada ponta a ponta | Concluída    | PostGIS → API → mapa → seleção → popup                   |
 | 5 — Sistema genérico de camadas   | Concluída    | segunda camada não altera componentes genéricos          |
 | 6 — Prova de derivação            | Concluída    | módulo pode ser adicionado e removido sem alterar o Core |
-| 7 — Ferramentas e acabamento      | Não iniciada | capacidades priorizadas funcionam por configuração       |
+| 7 — Ferramentas e acabamento      | Concluída    | capacidades priorizadas funcionam por configuração       |
 | 8 — Qualidade e entrega           | Não iniciada | CI, documentação e build/deploy validados                |
 
 ## 3. Fase 0 — Especificação e arquitetura
@@ -215,8 +215,8 @@ Adicionar e remover o módulo de referência deverá exigir mudanças apenas na 
 
 Os itens serão priorizados ao chegar nesta fase; não são todos obrigatórios antecipadamente.
 
-- [ ] medição de distância;
-- [ ] medição de área;
+- [x] medição de distância;
+- [x] medição de área;
 - [ ] segundo basemap;
 - [ ] Light/Dark Mode;
 - [ ] busca interna;
@@ -365,3 +365,16 @@ Ao concluir cada fase, adicionar nesta seção:
 - stack com database, backend, frontend e Nginx saudáveis; aplicação e health respondem HTTP 200;
 - revisão funcional aprovada em 2026-08-15, sem regressão visual ou de interação;
 - fora do escopo preservado: sem runtime de plugins, marketplace, registry ou carregamento remoto.
+
+### Fase 7 — recorte de medição
+
+- branch: `agent/measurement-tools`;
+- capacidades `measureDistance` e `measureArea` controlam separadamente os botões da toolbar;
+- cálculo geodésico puro usa distância Haversine acumulada e área esférica, com formatação métrica em metros/quilômetros;
+- adaptador MapLibre mantém fonte e camadas GeoJSON temporárias para vértices, linha e polígono;
+- medição bloqueia seleção de feições enquanto ativa e pode ser reiniciada, encerrada pelo painel ou cancelada com `Esc`;
+- estado permanece efêmero no hook do mapa e nunca é enviado à API ou ao PostGIS;
+- frontend: ESLint, Prettier, 44 testes Vitest e build de produção aprovados;
+- backend permanece sem alterações; Ruff e 24 testes Pytest continuam aprovados;
+- revisão funcional das medições aprovada em 2026-08-16;
+- fora deste recorte: segundo basemap, tema, busca e demais refinamentos continuam pendentes para priorização.

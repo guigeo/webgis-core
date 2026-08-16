@@ -48,6 +48,8 @@ export const appConfigSchema = z
     capabilities: z.object({
       layers: z.boolean(),
       legend: z.boolean(),
+      measureDistance: z.boolean(),
+      measureArea: z.boolean(),
     }),
     modules: z
       .array(z.string().regex(/^[a-z][a-z0-9-]*$/))

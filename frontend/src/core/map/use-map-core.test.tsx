@@ -30,6 +30,16 @@ function MapCoreHarness({
       <button type="button" onClick={() => void map.toggleFullscreen()}>
         Tela cheia
       </button>
+      <button type="button" onClick={() => map.startMeasurement('distance')}>
+        Medir
+      </button>
+      <button type="button" onClick={map.resetMeasurement}>
+        Recomeçar
+      </button>
+      <button type="button" onClick={map.clearMeasurement}>
+        Encerrar
+      </button>
+      <span>{map.measurement.formatted ?? 'sem medição'}</span>
     </div>
   )
 }
@@ -43,8 +53,21 @@ describe('useMapCore', () => {
     const clearLayer = vi.fn()
     const setLayerOpacity = vi.fn()
     const setLayerOrder = vi.fn()
+    const resetMeasurement = vi.fn()
+    const clearMeasurement = vi.fn()
     const destroy = vi.fn()
     let receivedEvents: MapAdapterEvents | undefined
+    const startMeasurement = vi.fn(() =>
+      receivedEvents?.onMeasurementChange({
+        mode: 'distance',
+        coordinates: [
+          [0, 0],
+          [1, 0],
+        ],
+        value: 111_195,
+        formatted: '111,20 km',
+      }),
+    )
 
     const adapter: MapAdapter = {
       initialize: (_container, _fullscreenContainer, events) => {
@@ -68,6 +91,9 @@ describe('useMapCore', () => {
       clearLayer,
       setLayerOpacity,
       setLayerOrder,
+      startMeasurement,
+      resetMeasurement,
+      clearMeasurement,
     }
     const createAdapter = vi.fn(() => adapter)
 
@@ -80,10 +106,17 @@ describe('useMapCore', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Início' }))
     fireEvent.click(screen.getByRole('button', { name: 'Enquadrar' }))
     fireEvent.click(screen.getByRole('button', { name: 'Tela cheia' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Medir' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Recomeçar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Encerrar' }))
 
     expect(goHome).toHaveBeenCalledOnce()
     expect(fitHomeBounds).toHaveBeenCalledOnce()
     expect(toggleFullscreen).toHaveBeenCalledOnce()
+    expect(startMeasurement).toHaveBeenCalledWith('distance')
+    expect(resetMeasurement).toHaveBeenCalledOnce()
+    expect(clearMeasurement).toHaveBeenCalledOnce()
+    expect(screen.getByText('111,20 km')).toBeInTheDocument()
     expect(receivedEvents).toBeDefined()
 
     rendered.unmount()
@@ -102,6 +135,9 @@ describe('useMapCore', () => {
       clearLayer: vi.fn(),
       setLayerOpacity: vi.fn(),
       setLayerOrder: vi.fn(),
+      startMeasurement: vi.fn(),
+      resetMeasurement: vi.fn(),
+      clearMeasurement: vi.fn(),
     }
     const createAdapter: MapAdapterFactory = () => adapter
 

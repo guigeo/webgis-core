@@ -40,6 +40,8 @@ export const appConfig = appConfigSchema.parse({
   capabilities: {
     layers: true,
     legend: true,
+    measureDistance: true,
+    measureArea: true,
   },
   modules: ['reference'],
 })

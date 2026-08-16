@@ -11,6 +11,7 @@ import type { MapAdapterFactory, MapBounds } from '../../core/map/contracts'
 import { createMapLibreMapAdapter } from '../../core/map/maplibre-map-adapter'
 import { useMapCore } from '../../core/map/use-map-core'
 import { useLayerFeaturesQuery } from '../../services/layers'
+import { MeasurementPanel } from './measurement-panel'
 import { StatusBar } from '../shell/status-bar'
 import { Toolbar } from '../shell/toolbar'
 import type { ServiceStatus } from '../shell/types'
@@ -207,6 +208,12 @@ export function MapWorkspace({
           </div>
         )}
 
+        <MeasurementPanel
+          measurement={map.measurement}
+          onClose={map.clearMeasurement}
+          onReset={map.resetMeasurement}
+        />
+
         {map.loadState !== 'ready' && (
           <div className="absolute inset-0 z-20 grid place-items-center bg-slate-100/75 px-6 backdrop-blur-[2px]">
             <div
@@ -242,8 +249,12 @@ export function MapWorkspace({
       {config.ui.toolbar && (
         <Toolbar
           mapReady={map.loadState === 'ready'}
+          measureAreaEnabled={config.capabilities.measureArea}
+          measureDistanceEnabled={config.capabilities.measureDistance}
+          measurementMode={map.measurement.mode}
           onFitHomeBounds={map.fitHomeBounds}
           onGoHome={map.goHome}
+          onStartMeasurement={map.startMeasurement}
           onToggleFullscreen={map.toggleFullscreen}
         />
       )}
