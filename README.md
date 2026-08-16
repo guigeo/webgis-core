@@ -39,6 +39,8 @@ docker compose ps
 docker compose logs -f
 ```
 
+Cada resposta da API inclui `X-Request-ID`. Um identificador válido enviado pelo cliente é preservado; caso contrário, a API gera um UUID. Os logs HTTP são emitidos em JSON com método, caminho, status e duração, permitindo correlacionar uma resposta de erro com o registro interno sem expor detalhes sensíveis ao cliente. O nível mínimo é configurado por `LOG_LEVEL`.
+
 Para encerrar sem remover os dados do PostGIS:
 
 ```bash

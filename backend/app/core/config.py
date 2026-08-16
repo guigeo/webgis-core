@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,6 +9,7 @@ class Settings(BaseSettings):
     app_name: str = "Geo Core API"
     database_url: str = "postgresql+psycopg://geo_core:geo_core@database:5432/geo_core"
     cors_origins: str = "http://localhost:8080"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
     model_config = SettingsConfigDict(
         env_file=".env",

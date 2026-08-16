@@ -232,7 +232,7 @@ Cada capacidade implementada deverá possuir feature flag ou configuração quan
 
 - [ ] consolidar testes unitários, integração e E2E;
 - [x] configurar CI para lint, types, testes e build;
-- [ ] estruturar logs, request ID e erros públicos;
+- [x] estruturar logs, request ID e erros públicos;
 - [ ] aplicar usuário de banco com privilégios mínimos;
 - [ ] configurar limites, rate limiting e headers de segurança;
 - [ ] concluir documentação de desenvolvimento e derivação;
@@ -390,4 +390,16 @@ Ao concluir cada fase, adicionar nesta seção:
 - validação local e nos containers aprovada: 44 testes Vitest, 24 testes Pytest, lint, formatação, TypeScript e build;
 - database, backend, frontend e Nginx saudáveis; aplicação HTTP 200 e API/PostGIS em estado `ok`;
 - limitação conhecida preservada: o bundle principal ainda gera o aviso de tamanho acima de 500 kB;
-- próximos itens da fase: logs e request ID, privilégios mínimos, limites e headers, documentação de produção, backup/restauração e deploy na VPS.
+- próximos itens da fase após a CI: observabilidade, privilégios mínimos, limites e headers, documentação de produção, backup/restauração e deploy na VPS.
+
+### Fase 8 — observabilidade HTTP
+
+- branch: `agent/request-observability`;
+- middleware valida ou gera `X-Request-ID` e o devolve em todas as respostas;
+- CORS expõe o identificador para consumidores no browser;
+- logs HTTP em JSON incluem request ID, método, caminho, status e duração;
+- logs operacionais do Uvicorn usam o mesmo formato e o access log duplicado fica desabilitado;
+- exceções inesperadas geram HTTP 500 com mensagem genérica e identificador de correlação, mantendo detalhes e traceback apenas nos logs;
+- nível mínimo de log configurável por `LOG_LEVEL`;
+- backend: Ruff, formatação e 29 testes Pytest aprovados;
+- validação integrada: request ID fornecido atravessou Nginx/API, retornou no header e apareceu no log JSON correspondente.
