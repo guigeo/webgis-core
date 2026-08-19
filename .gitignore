@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Frontend
 node_modules/
@@ -27,3 +28,4 @@ htmlcov/
 
 # Local artifacts
 *.log
+backups/

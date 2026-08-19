@@ -86,7 +86,21 @@ O smoke/E2E do gateway valida headers, limite de corpo, rate limiting e o fluxo 
 sh scripts/test-gateway.sh
 ```
 
-O workflow `.github/workflows/ci.yml` executa essas verificações em todo pull request e em cada atualização da branch `main`, usando Node.js 22 e Python 3.13. O frontend e o backend rodam em jobs independentes para que falhas sejam identificadas com clareza.
+O workflow `.github/workflows/ci.yml` executa essas verificações em todo pull request e em cada atualização da branch `main`, usando Node.js 22 e Python 3.13. O frontend e o backend rodam em jobs independentes para que falhas sejam identificadas com clareza. O job integrado constrói e testa a stack de produção, incluindo o bundle estático servido pelo gateway.
+
+## Baseline de produção
+
+A stack de produção fica em `docker-compose.prod.yml`. Ela usa uma imagem de API sem dependências de teste ou hot reload, compila o frontend como arquivos estáticos no Nginx, mantém o PostGIS em volume persistente e configura healthchecks, rotação de logs e reinício automático.
+
+O gateway fica restrito a `127.0.0.1:8080` por padrão para receber tráfego de um proxy HTTPS no host. Antes de iniciar, copie `.env.production.example`, configure o domínio e gere senhas exclusivas:
+
+```bash
+cp .env.production.example .env.production
+sh scripts/validate-production-env.sh
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+```
+
+Consulte [docs/PRODUCTION.md](docs/PRODUCTION.md) para preparação, validação, atualização e fronteira HTTPS. O procedimento de recuperação está em [docs/BACKUP_RESTORE.md](docs/BACKUP_RESTORE.md). TLS continua obrigatório antes da exposição pública.
 
 ## Estrutura atual
 
@@ -128,6 +142,8 @@ Antes de entregar uma aplicação derivada em produção, avalie o volume previs
 - [Plano de implementação](docs/IMPLEMENTATION_PLAN.md)
 - [Dados de referência](docs/DATASETS.md)
 - [Como derivar e criar módulos](docs/DERIVATION.md)
+- [Execução em produção](docs/PRODUCTION.md)
+- [Backup e restauração](docs/BACKUP_RESTORE.md)
 - [Decisões arquiteturais](docs/adr/)
 
 ## Estado

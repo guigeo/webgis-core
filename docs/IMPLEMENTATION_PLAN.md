@@ -2,7 +2,7 @@
 
 **Status geral:** Fase 8 em andamento
 **Gate atual:** consolidar qualidade automatizada e preparar a entrega
-**Última atualização:** 2026-08-16
+**Última atualização:** 2026-08-19
 
 ## 1. Forma de trabalho
 
@@ -32,7 +32,7 @@ Itens posteriores não deverão ser antecipados apenas porque são fáceis de in
 | 5 — Sistema genérico de camadas   | Concluída    | segunda camada não altera componentes genéricos          |
 | 6 — Prova de derivação            | Concluída    | módulo pode ser adicionado e removido sem alterar o Core |
 | 7 — Ferramentas e acabamento      | Concluída    | capacidades priorizadas funcionam por configuração       |
-| 8 — Qualidade e entrega           | Não iniciada | CI, documentação e build/deploy validados                |
+| 8 — Qualidade e entrega           | Em andamento | CI, documentação e build/deploy validados                |
 
 ## 3. Fase 0 — Especificação e arquitetura
 
@@ -236,9 +236,10 @@ Cada capacidade implementada deverá possuir feature flag ou configuração quan
 - [x] aplicar usuário de banco com privilégios mínimos;
 - [x] configurar limites, rate limiting e headers de segurança;
 - [ ] concluir documentação de desenvolvimento e derivação;
-- [ ] criar configuração de produção;
-- [ ] preparar HTTPS, volumes e restart policy;
-- [ ] documentar e testar backup/restauração do PostGIS;
+- [x] criar configuração de produção;
+- [x] configurar volumes e restart policy de produção;
+- [ ] preparar HTTPS;
+- [x] documentar e testar backup/restauração do PostGIS;
 - [ ] validar deploy na VPS alvo.
 
 ### Gate verificável
@@ -428,3 +429,37 @@ Ao concluir cada fase, adicionar nesta seção:
 - smoke/E2E cobre headers, HTTP 413, HTTP 429 e o fluxo PostGIS → catálogo → GeoJSON;
 - CI ganha job `Gateway`, que constrói a stack integrada, executa o E2E e sempre remove os volumes efêmeros;
 - inspeção visual automatizada indisponível nesta sessão por ausência de navegador conectado; revisão manual permanece em `http://localhost:8080`.
+
+### Fase 8 — baseline de produção
+
+- stack independente em `docker-compose.prod.yml`, sem bind mounts de código ou servidor Vite;
+- imagem de backend executada sem root, sem dependências de desenvolvimento e com dois workers Uvicorn;
+- imagem do gateway compila o React e serve o bundle estático diretamente pelo Nginx;
+- CSP de produção remove scripts inline e conexões WebSocket do hot reload;
+- PostGIS usa volume persistente; banco, API e gateway usam healthchecks, rotação de logs e `restart: unless-stopped`;
+- gateway publicado somente em `127.0.0.1` por padrão, preparado para um terminador HTTPS no host;
+- validação preventiva rejeita domínio e senhas de exemplo, senhas curtas e origem sem HTTPS;
+- CI configurada para construir a stack de produção e executar nela o smoke/E2E do gateway;
+- configuração Compose validada e imagens de backend e gateway construídas localmente;
+- stack efêmera validada com migration `Exited (0)`, database, backend e gateway saudáveis;
+- smoke/E2E do gateway aprovado sobre a stack de produção, incluindo headers, HTTP 413, HTTP 429, catálogo e GeoJSON;
+- frontend estático e CSP de produção sem scripts inline validados por HTTP;
+- frontend: Prettier, ESLint, TypeScript, 44 testes Vitest e build aprovados;
+- backend: Ruff e 39 testes Pytest aprovados; 1 teste específico de permissões foi ignorado na suíte local sem `TEST_DATABASE_URL`, enquanto o acesso runtime usado pelo smoke foi validado com o PostGIS da stack;
+- HTTPS e deploy na VPS permanecem como gates separados antes da exposição pública.
+
+### Fase 8 — backup e restauração do PostGIS
+
+- backup em formato customizado, sem ownership/ACL, validado por `pg_restore --list` e acompanhado de SHA-256;
+- arquivo temporário somente é promovido após conclusão e validação do dump;
+- restauração valida checksum e archive sem alterar dados por padrão;
+- ensaio rejeita archive adulterado e confirmação vinculada ao banco incorreto;
+- substituição do banco exige `--replace` e confirmação vinculada ao nome exato do banco;
+- API e gateway são interrompidos durante a troca e permanecem parados se a restauração falhar;
+- migrations e privilégios mínimos são reaplicados antes da retomada da API;
+- ensaio automatizado cria uma marca exclusiva, remove o volume de origem e restaura em volume novo;
+- integridade aprovada: 2 camadas, 39 polígonos, 39 pontos, SRID 4326 e marca exclusiva recuperada;
+- usuário runtime permaneceu somente leitura após a restauração;
+- smoke/E2E do gateway aprovado sobre o banco recuperado;
+- CI configurada para repetir o ensaio de recuperação em ambiente isolado;
+- procedimento operacional, retenção sugerida e recuperação de desastre documentados em `docs/BACKUP_RESTORE.md`.

@@ -1,0 +1,145 @@
+name: geo-core-prod
+
+x-backend-image: &backend-image
+  image: geo-core-backend:${GEO_CORE_IMAGE_TAG:-local}
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-file: "3"
+    max-size: 10m
+
+services:
+  database:
+    image: postgis/postgis:17-3.5
+    platform: ${POSTGIS_PLATFORM:-linux/amd64}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - internal
+
+  migrate:
+    <<: *backend-image
+    command:
+      - sh
+      - -c
+      - >-
+        python -m app.core.database_access ensure-role &&
+        alembic upgrade head &&
+        python -m app.core.database_access grant-access
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?defina POSTGRES_USER}:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:?defina POSTGRES_DB}
+      DATABASE_RUNTIME_USER: ${POSTGRES_APP_USER:?defina POSTGRES_APP_USER}
+      DATABASE_RUNTIME_PASSWORD: ${POSTGRES_APP_PASSWORD:?defina POSTGRES_APP_PASSWORD}
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - internal
+
+  backend:
+    <<: *backend-image
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    environment:
+      APP_ENV: production
+      APP_NAME: ${APP_NAME:-Geo Core API}
+      CORS_ORIGINS: ${APP_ORIGIN:?defina APP_ORIGIN}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_APP_USER:?defina POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD:?defina POSTGRES_APP_PASSWORD}@database:5432/${POSTGRES_DB:?defina POSTGRES_DB}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - internal
+
+  gateway:
+    image: geo-core-gateway:${GEO_CORE_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile.prod
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    environment:
+      NGINX_API_BURST: ${NGINX_API_BURST:-20}
+      NGINX_API_CONNECTIONS: ${NGINX_API_CONNECTIONS:-20}
+      NGINX_API_RATE: ${NGINX_API_RATE:-10r/s}
+      NGINX_CLIENT_MAX_BODY_SIZE: ${NGINX_CLIENT_MAX_BODY_SIZE:-16k}
+      NGINX_CONTENT_SECURITY_POLICY: "${NGINX_CONTENT_SECURITY_POLICY:-default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://a.basemaps.cartocdn.com; connect-src 'self'; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'}"
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1/nginx-health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - edge
+      - internal
+
+networks:
+  edge:
+  internal:
+    internal: true
+
+volumes:
+  postgis_data:
