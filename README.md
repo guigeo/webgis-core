@@ -1,8 +1,31 @@
-# Geo Core
+# Geo Core — **congelado**
+
+> **Este repositório não recebe mais desenvolvimento.** Último commit em 2026-08-19;
+> congelado em 2026-08-22. Ele foi superado pela arquitetura de quatro repositórios
+> decidida no [ADR-0001 do `webgis`](../webgis/docs/adr/0001-arquitetura-e-convergencia.md),
+> e é preservado por um motivo específico: **é a fonte dos 16 artefatos do passo 5**
+> daquele roteiro — parametrizar a casca —, que está esperando o segundo cliente.
+> Extrair template com N=1 é adivinhar o que varia.
+>
+> **Não desenvolva aqui.** Decisão que muda o que este repositório significa é commit
+> no ADR do `webgis`. O inventário item a item do que sai daqui, e em que forma,
+> está em [`webgis/docs/HERANCA.md`](../webgis/docs/HERANCA.md) §1.
+>
+> O que se aproveita: registro de módulos, configuração validada por Zod, contrato e
+> store de camadas, adaptador MapLibre, medição, catálogo como allowlist, privilégio
+> mínimo no banco, request ID/log/erro público, CI e as rotinas de operação. O que
+> ficou para trás: GeoJSON por viewport como entrega principal, o basemap CARTO
+> (ADR-0003) e o `ibge_rmsp_municipalities.geojson` — dado universal não mora na casca.
+>
+> Uma coisa daqui foi para produção sem o código junto: o **endurecimento HTTP** do
+> `nginx/`. O conteúdo foi portado para o Caddy que serve a aplicação derivada em
+> 2026-08-22 (HERANCA §7, pendência 1). O Nginx em si não vai a lugar nenhum.
 
 Fundação WebGIS open source para derivar aplicações geográficas por configuração e composição de módulos.
 
-O projeto está em implementação incremental. A Fase 8 iniciou a consolidação de qualidade e entrega com CI automatizada, preservando as ferramentas genéricas e configuráveis de medição entregues na fase anterior.
+O texto abaixo descreve o repositório como ele era quando parou, na Fase 8 — consolidação
+de qualidade e entrega com CI automatizada. Vale como documentação do que existe aqui,
+não como plano do que vai acontecer.
 
 ## Requisitos
 
